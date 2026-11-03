@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 调用日志</title>
+
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/model.css">
+    <link rel="stylesheet" href="css/balance-card.css">
+    <link rel="stylesheet" href="css/log.css">
+</head>
+
+<body>
+
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+
+    <div class="container main-container">
+        <div class="mb-5">
+            <div class="t-h2">调用日志</div>
+            <div class="text-secondary">查看您的 API 调用记录和使用情况</div>
+        </div>
+
+        <div class="card mb-5 balance-card">
+            <section class="balance-band" id="balanceOverviewBand" aria-label="用量信息">
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-green" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">
+                当前余额 
+            </div>
+            <div class="metric-value" id="balanceQuota">$0.00</div>
+            <div class="metric-desc">剩余可用额度</div>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-purple" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">总用量</div>
+            <div class="metric-value" id="balanceUsedQuota">$0.00</div>
+            <div class="metric-desc">总消耗额度</div>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">API 请求</div>
+            <div class="metric-value" id="balanceRequestNum">0</div>
+            <div class="metric-desc">总请求数</div>
+        </div>
+    </article>
+</section>
+        </div>
+
+        <div class="card mb-5">
+            <div class="card-header chart-header">
+                <div class="t-h3 chart-title">调用趋势</div>
+            </div>
+            <div id="logsChart" class="chart-container"></div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card result-card">
+            <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="t-h3 list-header-title">日志列表</div>
+                </div>
+                <div class="flex gap-2 items-center search-inline">
+                    <div class="layui-input-wrap">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-search"></i>
+                        </div>
+                        <input type="text" class="layui-input" id="tokenInput" placeholder="输入令牌" maxlength="64">
+                    </div>
+                    <div class="layui-input-wrap">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-search"></i>
+                        </div>
+                        <input type="text" class="layui-input" id="requestIdInput" placeholder="输入请求Id" maxlength="64">
+                    </div>
+                    <div class="custom-model-dropdown" id="custom-model-dropdown">
+                        <button type="button" class="dropdown-toggle" id="model-dropdown-toggle" style="background: transparent; border: 1px solid #d2d2d2; border-radius: 4px; height: 32px; padding: 0 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; width: 180px;">
+                            <div style="display: flex; align-items: center; gap: 8px;">
+                                <i class="layui-icon layui-icon-search" style="color: #999;"></i>
+                                <span class="selected-model-name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: #999;">输入模型名称</span>
+                            </div>
+                            <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </button>
+                        <div class="dropdown-menu shadow-lg" id="model-dropdown-menu" style="width: 400px; display: none;">
+                            <div class="dropdown-layout">
+                                <div class="provider-list" id="provider-list" style="width: 120px; border-right: 1px solid var(--chat-border); padding-right: 8px;">
+                                    <div class="provider-title" style="font-size: 12px; color: var(--text-tertiary); padding: 8px; margin-bottom: 4px;">模型厂家</div>
+                                    <!-- Providers populated by JS -->
+                                </div>
+                                <div class="model-list" style="flex: 1; padding-left: 8px;">
+                                    <div class="search-bar" style="margin-bottom: 8px;">
+                                        <div style="position: relative; display: flex; align-items: center; border: 1px solid var(--chat-border); border-radius: 6px; padding: 0 8px; background: #fafafa;">
+                                            <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--text-tertiary)"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 12.01 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 12.01 14 9.5 14z"/></svg>
+                                            <input type="text" placeholder="搜索模型..." style="width: 100%; padding: 6px 8px; border: none; background: transparent; font-size: 13px; outline: none;">
+                                        </div>
+                                    </div>
+                                    <div class="dropdown-list" id="model-dropdown-list" style="max-height: 250px; overflow-y: auto;">
+                                        <!-- Options populated by JS -->
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-input-wrap date-range-wrap" id="dateRange">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-date"></i>
+                        </div>
+                        <input type="text" id="startTime" placeholder="开始日期" autocomplete="off">
+                        <span class="text-secondary mx-1">-</span>
+                        <input type="text" id="endTime" placeholder="结束日期" autocomplete="off">
+                    </div>
+                    <button class="layui-btn layui-btn-sm search-btn" style="background-color: #FF5722;" id="btnSearch">查询</button>
+                    <button class="layui-btn layui-btn-sm layui-btn-primary search-btn" id="btnReset">重置</button>
+                </div>
+            </div>
+            
+            <div class="summary-container card" style="margin-bottom: 12px; padding: 0; background: transparent; box-shadow: none; border: none;">
+                <div class="summary-header" id="summaryHeader" style="padding: 0; cursor: pointer; display: flex; justify-content: space-between; align-items: stretch;">
+                    <div class="summary-total" id="summaryTotalContainer" style="display: flex; gap: 8px; flex: 1;">
+                        <!-- JS Render -->
+                    </div>
+                    <div class="summary-toggle text-secondary flex items-center justify-center gap-1" style="width: 80px; flex-shrink: 0; background: #fff; border-radius: 4px; border: 1px solid #f0f0f0; margin-left: 8px; transition: all 0.3s; font-size: 12px;">
+                        <span id="summaryToggleText">展开详情</span>
+                        <i class="layui-icon layui-icon-down" id="summaryToggleIcon"></i>
+                    </div>
+                </div>
+                <div class="summary-body" id="summaryBody" style="display: none; padding: 8px 0 0 0; background: transparent; border: none; border-radius: 0; box-shadow: none;">
+                    <div id="summaryModelsContainer" style="display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 8px;">
+                        <div class="text-secondary">暂无数据</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="table-container">
+                <table class="table" style="table-layout: fixed;">
+                    <thead>
+                        <tr>
+                            <th width="150" class="text-center">令牌</th>
+                            <th width="200" class="text-center">请求Id</th>
+                            <th width="200" class="text-center">模型</th>
+                            <th width="120" class="text-center">费用</th>
+                            <th width="160" class="text-center">调用时间</th>
+                            <th width="120" class="text-center">耗时</th>
+                            <th width="80" class="text-center">明细</th>
+                        </tr>
+                    </thead>
+                    <tbody id="logsTableBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container" id="pagination">
+                <div id="paginationControls"></div>
+            </div>
+        </div>
+    </div>
+
+        <div class="footer">
+        <div class="container">
+            <div class="flex flex-wrap justify-between items-center gap-5">
+                <div class="footer-left">
+                    <div class="brand-logo flex items-center gap-2 mb-2">
+                        <div class="font-black text-primary footer-brand-title">龙虾计划</div>
+                    </div>
+                    <div class="t-sm text-secondary">每个人都能轻松接入的API站</div>
+                </div>
+                <div class="footer-right text-right">
+                    <div class="t-sm text-secondary mb-1">&copy; 2024-2026 龙虾计划 . All Rights Reserved.</div>
+                    <div class="t-sm text-secondary">
+                        <span class="footer-block">Designed by Bilibili Up主: 还在路上的小光 <span class="badge badge-bilibili">Bilibili</span></span>
+                        <span class="mx-4 footer-sep">|</span>
+                        <span class="footer-block">公众号: 计划引擎</span>
+                        <span class="mx-4">|</span>
+                        <span class="footer-block">官方QQ讨论群: 1044559389</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-hidden="true">
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-head">
+                <div class="mobile-nav-title">菜单</div>
+                <div class="mobile-nav-close" type="button" id="mobileNavClose">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mobile-nav-links" id="mobileNavContainer">
+            </div>
+        </div>
+    </div>
+
+    <!-- Log Table Template -->
+    <script type="text/html" id="logTableTpl">
+        {{# layui.each(d, function(index, item){ }}
+        {{# 
+            var providerClass = "";
+            if (item.provider === "OpenAI") providerClass = "openai";
+            else if (item.provider === "Anthropic") providerClass = "claude";
+            else if (item.provider === "Google") providerClass = "gemini";
+            else if (item.provider === "xAI") providerClass = "grok";
+            else providerClass = item.provider || "default";
+        }}
+        <tr class="log-row" data-index="{{ index }}">
+            <td class="text-center">
+                <div class="copy-text" data-copy="{{ item.tokenName || '' }}" style="display:flex; flex-direction:column; gap:6px; align-items:center; cursor: pointer;" title="点击复制">
+                    <span style="display:inline-flex; align-items:center; gap:6px; padding:2px 8px; border:1px solid var(--border-color); border-radius:12px; font-size:12px; background:var(--bg-body); width: fit-content; max-width: 100%;">
+                        <svg viewBox="0 0 24 24" width="12" height="12" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"></path></svg>
+                        <span style="overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ item.tokenName || '-' }}</span>
+                    </span>
+                </div>
+            </td>
+            <td class="text-center">
+                <span class="copy-text" data-copy="{{ item.requestId || '' }}" style="font-size:13px; color:var(--text-main); word-break: break-all; cursor: pointer;" title="点击复制">
+                     {{ item.requestId || '-' }}
+                 </span>
+            </td>
+            <td class="text-center">
+                <div class="copy-text" data-copy="{{ item.modelName || '' }}" style="display:flex; align-items:center; gap:8px; justify-content:center; cursor: pointer;" title="点击复制">
+                    <span class="model-icon model-provider-icon--{{ providerClass }}" style="width:20px; height:20px;">
+                        <span class="model-icon-surface" style="font-size:12px;">
+                            {{- item.icon || '✨' }}
+                        </span>
+                    </span>
+                    <span style="font-weight:500; font-size:14px;">{{ item.modelName || '-' }}</span>
+                </div>
+            </td>
+            <td class="text-center">
+                <span style="display:inline-flex; align-items:center; padding:2px 8px; border:1px solid var(--border-color); border-radius:12px; font-size:13px; font-weight:500; background:var(--bg-body);">
+                    {{# var formattedAmount = Number(item.amount || 0).toLocaleString('en-US', { maximumFractionDigits: 6 }); }}
+                    $ {{ formattedAmount }}
+                </span>
+            </td>
+            <td class="text-center">
+                <span style="font-size:13px; color:var(--text-secondary);">
+                    {{ formatDateTime(item.createdAt) }}
+                </span>
+            </td>
+            <td class="text-center">
+                <div style="display:flex; gap:8px; justify-content:center;">
+                    <div style="width:3px; background:var(--primary-color); border-radius:2px; opacity:0.8;"></div>
+                    <div style="display:flex; flex-direction:column; gap:2px; font-size:12px; justify-content:center;">
+                        <span style="color:var(--success-color);">
+                            {{# if(Number(item.useTime) < 1){ }}
+                            &lt; 1s
+                            {{# } else { }}
+                            {{ item.useTime }}s
+                            {{# } }}
+                        </span>
+                    </div>
+                </div>
+            </td>
+            <td class="text-center">
+                <button type="button" class="layui-btn layui-btn-xs layui-btn-primary btn-detail" style="border-radius:4px; color:var(--text-main); border-color:var(--border-color);">详情</button>
+            </td>
+        </tr>
+        {{# }); }}
+        {{# if(d.length === 0){ }}
+        <tr><td colspan="7" class="text-center text-secondary py-5">暂无日志数据</td></tr>
+        {{# } }}
+    </script>
+
+    <!-- Log Detail Drawer -->
+    <div class="drawer-layer" id="logDrawerLayer" aria-hidden="true">
+        <button class="drawer-backdrop" id="logDrawerBackdrop" aria-label="关闭详情"></button>
+        <aside class="model-drawer" id="logDrawer" aria-label="日志详情">
+            <header class="drawer-head">
+                <div class="drawer-identity">
+                    <div class="drawer-logo" id="logDrawerLogo"></div>
+                    <div>
+                        <div class="drawer-title-row">
+                            <div class="drawer-name" id="logDrawerModelName"></div>
+                            <button class="drawer-copy" id="logDrawerCopy" title="复制模型名称" type="button"><span class="copy-glyph"></span></button>
+                        </div>
+                        <div class="drawer-meta"><span id="logDrawerProvider"></span><b id="logDrawerBillingType"></b></div>
+                    </div>
+                </div>
+                <div class="drawer-desc" id="logDrawerDesc" style="margin-top: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: none;"></div>
+                <button class="drawer-close" id="logDrawerClose" aria-label="关闭" type="button">×</button>
+            </header>
+            <div class="drawer-body">
+                <section class="drawer-section">
+                    <div class="drawer-section-title">Tokens 消耗</div>
+                    <div class="inline-prices" id="logDrawerTokens" style="display: none;">
+                        <div>
+                            <span>输入</span>
+                            <span><strong id="logDrawerInputTokens"></strong><span class="unit"> Tokens</span></span>
+                        </div>
+                        <div>
+                            <span>补全</span>
+                            <span><strong id="logDrawerOutputTokens"></strong><span class="unit"> Tokens</span></span>
+                        </div>
+                        <div id="logDrawerCacheInputRow">
+                            <span>读取</span>
+                            <span><strong id="logDrawerCacheInputTokens"></strong><span class="unit"> Tokens</span></span>
+                        </div>
+                        <div id="logDrawerCacheOutRow">
+                            <span>写入</span>
+                            <span><strong id="logDrawerCacheOutTokens"></strong><span class="unit"> Tokens</span></span>
+                        </div>
+                    </div>
+                    <div class="inline-prices" id="logDrawerFixed" style="display: none;">
+                        <div class="full-width">
+                            <span>调用次数</span>
+                            <span><strong id="logDrawerPoint"></strong><span class="unit"> 次</span></span>
+                        </div>
+                    </div>
+                </section>
+                <section class="drawer-section">
+                    <div class="drawer-section-title">官方定价</div>
+                    <div class="inline-prices" id="logDrawerPricesToken" style="display: none;">
+                        <div>
+                            <span>输入</span>
+                            <span><span class="currency">$</span><strong id="logDrawerInputPrice"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div>
+                            <span>补全</span>
+                            <span><span class="currency">$</span><strong id="logDrawerOutputPrice"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div id="logDrawerReadContainer">
+                            <span>读取</span>
+                            <span><span class="currency">$</span><strong id="logDrawerReadPrice"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div id="logDrawerWriteContainer">
+                            <span>写入</span>
+                            <span><span class="currency">$</span><strong id="logDrawerWritePrice"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                    </div>
+                    <div class="inline-prices" id="logDrawerPricesFixed" style="display: none;">
+                        <div class="full-width">
+                            <span>模型价格</span>
+                            <span><span class="currency">$</span><strong id="logDrawerFixedPrice"></strong><span class="unit"> / 次</span></span>
+                        </div>
+                    </div>
+                </section>
+                <section class="drawer-section">
+                    <div class="drawer-section-title">分组价格</div>
+                    <div id="logDrawerGroupsContainer"></div>
+                </section>
+                <section class="drawer-section">
+                    <div class="drawer-section-title">日志信息</div>
+                    <dl>
+                        <div><dt>请求Id</dt><dd id="logDrawerRequestId" style="word-break:break-all;"></dd></div>
+                        <div><dt>收费方式</dt><dd id="logDrawerChargeMode"></dd></div>
+                        <div><dt>令牌名称</dt><dd id="logDrawerTokenName"></dd></div>
+                        <div><dt>是否流式</dt><dd id="logDrawerIsStream"></dd></div>
+                        <div><dt>请求路径</dt><dd id="logDrawerRequestPath" style="word-break:break-all;"></dd></div>
+                        <div><dt>费用</dt><dd id="logDrawerAmount" style="color:var(--text-main); font-weight:bold;"></dd></div>
+                        <div><dt>调用时间</dt><dd id="logDrawerCreatedAt"></dd></div>
+                        <div><dt>耗时</dt><dd id="logDrawerUseTime"></dd></div>
+                    </dl>
+                </section>
+            </div>
+        </aside>
+    </div>
+    <div class="toast" id="toast">模型名称已复制</div>
+
+    <script type="text/html" id="drawerGroupTpl">
+        {{# 
+            var inputPrice = d.inputPrice || 0;
+            var outPrice = d.outPrice || 0;
+            var cacheInputPrice = d.cacheInputPrice || 0;
+            var cacheOutPrice = d.cacheOutPrice || 0;
+            var number = d.number || 0;
+            
+            var calcInput = parseFloat((inputPrice * (d.ratio || 1)).toFixed(6)).toString();
+            var calcOut = parseFloat((outPrice * (d.ratio || 1)).toFixed(6)).toString();
+            var calcCacheIn = parseFloat((cacheInputPrice * (d.ratio || 1)).toFixed(6)).toString();
+            var calcCacheOut = parseFloat((cacheOutPrice * (d.ratio || 1)).toFixed(6)).toString();
+            var calcNumber = parseFloat((number * (d.ratio || 1)).toFixed(6)).toString();
+            
+            var ratioDisplay = d.ratio || 1;
+        }}
+        <div class="route-card" style="margin-bottom: 12px;">
+            <div class="route-head">
+                <span class="route-name model-provider-text--{{ d.provider || 'default' }}">{{ d.groupName }}</span>
+                <span class="count" style="font-size: 12px; color: var(--text-secondary); background: transparent; padding: 0; font-weight: normal; font-family: Consolas, monospace;">×{{ ratioDisplay }}</span>
+            </div>
+            <div class="price-table">
+                <div class="table-head">
+                    <span style="text-align: left;">档位</span>
+                    {{# if(d.modelType === 'fixed'){ }}
+                    <span style="text-align: center;">单次价格</span>
+                    <span></span><span></span><span></span>
+                    {{# } else { }}
+                    <span style="text-align: center;">输入</span>
+                    <span style="text-align: center;">补全</span>
+                    <span style="text-align: center;">读取</span>
+                    <span style="text-align: center;">写入</span>
+                    {{# } }}
+                </div>
+                <div class="table-row">
+                    <span style="text-align: left;">标准上下文</span>
+                    {{# if(d.modelType === 'fixed'){ }}
+                    <b style="text-align: center;">${{ calcNumber }}<span class="unit"> / 次</span></b>
+                    <span></span><span></span><span></span>
+                    {{# } else { }}
+                    <b style="text-align: center;">${{ calcInput }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcOut }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcCacheIn }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcCacheOut }}<span class="unit"> / 1M Tokens</span></b>
+                    {{# } }}
+                </div> 
+            </div>
+        </div>
+    </script>
+
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="../Static/js/echarts.min.js"></script>
+    <script src="../Static/js/global.js"></script>
+    <script src="js/global.js?v=2"></script>
+    <script src="js/balance-card.js?v=2"></script>
+    <script src="js/log.js?v=2"></script>
+</body>
+
+</html>

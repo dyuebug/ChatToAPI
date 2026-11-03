@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 我的订单</title>
+
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/order.css">
+</head>
+
+<body>
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+
+    <div class="container main-container">
+        <div class="mb-5">
+            <div class="t-h2">我的订单</div>
+            <div class="text-secondary">查看和管理您的购买记录</div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card result-card">
+            <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                <div class="flex items-center gap-2">
+                    <div class="t-h3 list-header-title">订单列表</div>
+                </div>
+                <div class="flex gap-2 items-center search-inline">
+                    <div class="layui-input-wrap">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-search"></i>
+                        </div>
+                        <input type="text" class="layui-input" id="searchKeywords" placeholder="输入订单号">
+                    </div>
+                    <div class="layui-input-wrap date-range-wrap" id="dateRange">
+                        <div class="layui-input-prefix">
+                            <i class="layui-icon layui-icon-date"></i>
+                        </div>
+                        <input type="text" id="startDate" placeholder="开始日期" autocomplete="off">
+                        <span class="text-secondary mx-1">-</span>
+                        <input type="text" id="endDate" placeholder="结束日期" autocomplete="off">
+                    </div>
+                    <button class="layui-btn layui-btn-sm search-btn search-btn-primary" id="btnSearch">查询</button>
+                    <button class="layui-btn layui-btn-sm search-btn search-btn-default" id="btnResetSearch">重置</button>
+                </div>
+            </div>
+            
+            <div class="table-container">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>订单号</th>
+                            <th>付款金额</th>
+                            <th>支付方式</th>
+                            <th>订单状态</th>
+                            <th>下单时间</th>
+                        </tr>
+                    </thead>
+                    <tbody id="ordersTableBody">
+                        <!-- Rendered by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="emptyState" class="hidden empty-state">
+                <div class="empty-icon-wrap">
+                    <svg viewBox="0 0 24 24" width="48" height="48" fill="currentColor">
+                        <path
+                            d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm4.59-12.42L10 14.17l-2.59-2.58L6 13l4 4 8-8z"
+                            opacity="0.3" />
+                    </svg>
+                </div>
+                <div class="text-secondary">暂无订单数据</div>
+            </div>
+
+            <!-- Pagination -->
+            <div class="pagination-container hidden" id="pagination">
+                <div id="paginationControls"></div>
+            </div>
+        </div>
+    </div>
+
+        <div class="footer">
+        <div class="container">
+            <div class="flex flex-wrap justify-between items-center gap-5">
+                <div class="footer-left">
+                    <div class="brand-logo flex items-center gap-2 mb-2">
+                        <div class="font-black text-primary footer-brand-title">龙虾计划</div>
+                    </div>
+                    <div class="t-sm text-secondary">每个人都能轻松接入的API站</div>
+                </div>
+                <div class="footer-right text-right">
+                    <div class="t-sm text-secondary mb-1">&copy; 2024-2026 龙虾计划 . All Rights Reserved.</div>
+                    <div class="t-sm text-secondary">
+                        <span class="footer-block">Designed by Bilibili Up主: 还在路上的小光 <span class="badge badge-bilibili">Bilibili</span></span>
+                        <span class="mx-4 footer-sep">|</span>
+                        <span class="footer-block">公众号: 计划引擎</span>
+                        <span class="mx-4">|</span>
+                        <span class="footer-block">官方QQ讨论群: 1044559389</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-hidden="true">
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-head">
+                <div class="mobile-nav-title">菜单</div>
+                <div class="mobile-nav-close" type="button" id="mobileNavClose">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mobile-nav-links" id="mobileNavContainer">
+            </div>
+        </div>
+    </div>
+
+    <!-- Order Table Template -->
+    <script type="text/html" id="orderTableTpl">
+        {{# layui.each(d, function(index, item){ }}
+        <tr>
+            <td class="text-secondary">{{ item.orderNo }}</td>
+            <td class="font-bold">￥{{ parseFloat(formatMoney(item.amount)) }}</td>
+            <td>{{ item.payMode === 'WECHAT' ? '微信' : (item.payMode === 'ALIPAY' ? '支付宝' : (item.payMode === 'CODE' ? '激活码' : item.payMode || '-')) }}</td>
+            <td>
+                {{# if(item.status === 'Paid'){ }}
+                <span class="layui-badge layui-bg-green">已支付</span>
+                {{# } else { }}
+                <span class="layui-badge layui-bg-orange">未支付</span>
+                {{# } }}
+            </td>
+            <td class="text-secondary">{{ formatDate(item.orderTime) }}</td>
+        </tr>
+        {{# }); }}
+    </script>
+
+    <!-- Pagination Template (removed) -->
+
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="../Static/js/global.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/order.js"></script>
+</body>
+
+</html>

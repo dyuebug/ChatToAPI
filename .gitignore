@@ -1,0 +1,19 @@
+node_modules/
+config.json
+config.local.json
+headers.txt
+*.log
+.DS_Store
+
+# 凭据与运行态（绝不可提交）
+data/
+data-test/
+.chattoapi-profile*/
+.chattoapi-master.key
+.chattoapi-run/
+
+# 独立仓库 / 本地工具状态
+magpie/
+.claude/
+.ccg/
+.spec-workflow/

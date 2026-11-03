@@ -1,0 +1,44 @@
+{
+  "host": "127.0.0.1",
+  "port": 8787,
+  "logLevel": "info",
+  "auth": {
+    "requireApiKey": true,
+    "dataDir": "data",
+    "profileDir": ".chattoapi-profile",
+    "browserPath": "",
+    "browserArgs": ["--disable-quic", "--disable-http2"],
+    "headless": false,
+    "loginUrl": "https://www.chatopens.ai/Web/Login.html",
+    "loginTimeoutMs": 600000,
+    "loginNavigationTimeoutMs": 60000,
+    "loginCodeTimeoutMs": 15000,
+    "captureWaitMs": 30000,
+    "autoOpenAiEntry": true,
+    "capturePaths": [
+      "/backend-api/f/conversation",
+      "/API/Web/ConversationMessage/Completions"
+    ]
+  },
+  "upstream": {
+    "baseUrl": "https://www.chatopens.ai",
+    "conversationPath": "/backend-api/f/conversation",
+    "conversationFallbackPath": "/backend-api/conversation",
+    "requestTimeoutMs": 120000,
+    "car": "Sorux",
+    "credential": {
+      "cookie": "PASTE_YOUR_COOKIE_HEADER_STRING_HERE",
+      "bearerToken": "PASTE_BEARER_TOKEN_HERE"
+    },
+    "headers": {
+      "oai-client-build-number": "4903962",
+      "oai-client-version": "prod-c8317ee14c178f58734a7c3fe41bcfaca8156ed1",
+      "oai-device-id": "PASTE_OAI_DEVICE_ID_OR_GENERATE_UUID",
+      "oai-language": "zh-CN",
+      "x-conduit-token": "saas_nexus_no_token",
+      "openai-sentinel-chat-requirements-token": "Fuck_You",
+      "openai-sentinel-turnstile-token": "",
+      "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36"
+    }
+  }
+}

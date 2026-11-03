@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 账户充值</title>
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/balance-card.css">
+    <link rel="stylesheet" href="css/pricing.css">
+</head>
+
+<body>
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+    <div class="container main-container pricing-page-container">
+        <section class="heading">
+            <div>
+                <div class="eyebrow">ACCOUNT BALANCE</div>
+                <div class="page-title">账户充值</div>
+                <div class="heading-subtitle">充值到账后可用于模型对话及 API 调用</div>
+            </div>
+            <div class="secure"><span>✓</span> 支付环境安全加密</div>
+        </section>
+
+        <div class="card mb-6 balance-card">
+            <section class="balance-band" id="balanceOverviewBand" aria-label="用量信息">
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-green" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">
+                当前余额 
+            </div>
+            <div class="metric-value" id="balanceQuota">$0.00</div>
+            <div class="metric-desc">剩余可用额度</div>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-purple" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-1 14H9V8h2v8zm4 0h-2V8h2v8z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">总用量</div>
+            <div class="metric-value" id="balanceUsedQuota">$0.00</div>
+            <div class="metric-desc">总消耗额度</div>
+        </div>
+    </article>
+    <article class="metric-card">
+        <div class="metric-icon metric-icon-blue" aria-hidden="true">
+            <svg viewBox="0 0 24 24" width="28" height="28" fill="currentColor">
+                <path d="M19 3H5c-1.1 0-2 .9-2 2v14c0 1.1.9 2 2 2h14c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2zm-5 14H7v-2h7v2zm3-4H7v-2h10v2zm0-4H7V7h10v2z" />
+            </svg>
+        </div>
+        <div class="metric-info">
+            <div class="metric-label">API 请求</div>
+            <div class="metric-value" id="balanceRequestNum">0</div>
+            <div class="metric-desc">总请求数</div>
+        </div>
+    </article>
+</section>
+        </div>
+
+        <section class="checkout">
+            <div class="checkout-main">
+                <div class="section-title">
+                    <div>
+                        <div class="section-title-text">充值金额</div>
+                        <div class="section-subtitle">充值完成后将自动到账当前账户</div>
+                    </div>
+                </div>
+                <div class="amount-grid" id="pricingGrid"></div>
+                <div class="custom-input" id="customInput">
+                    <span>$</span>
+                    <input id="customAmount" type="number" min="30" max="10000" step="1" placeholder="请输入其它充值金额" onkeypress="return event.charCode >= 48 && event.charCode <= 57">
+                </div>
+                <div class="notice">
+                    <span>i</span>
+                    <div>页面展示的是当前可购买的充值档位。点击任意金额即可在右侧同步查看订单金额与支付方式。</div>
+                </div>
+
+
+                <div class="activation-entry">
+                    <div class="activation-entry-info">
+                        <div class="activation-entry-title">激活码激活</div>
+                        <div class="activation-entry-desc">已有激活码可直接兑换到账，无需下单支付</div>
+                    </div>
+                    <button class="btn btn-outline pricing-activate-btn" data-action="CardActivate"
+                        type="button">立即激活</button>
+                </div>
+            </div>
+
+            <aside class="summary">
+                <div class="summary-title">订单确认</div>
+                <div class="summary-row"><span>充值账户</span><b id="summaryAccount">-</b></div>
+                <div class="summary-row"><span>充值金额</span><b id="summaryAmount">$0</b></div>
+                <div class="summary-total">
+                    <span>应付金额</span>
+                    <strong id="totalAmount">￥0</strong>
+                </div>
+                <button class="submit" id="submitPricingBtn" type="button">立即支付 <span>→</span></button>
+                <div class="support">
+                    <div>
+                        <b>支付遇到问题？</b>
+                        <small>请联系在线客服协助处理</small>
+                    </div>
+                    <a href="javascript:;" id="showSupportModalBtn">联系客服</a>
+                </div>
+            </aside>
+        </section>
+    </div>
+        <div class="footer">
+        <div class="container">
+            <div class="flex flex-wrap justify-between items-center gap-5">
+                <div class="footer-left">
+                    <div class="brand-logo flex items-center gap-2 mb-2">
+                        <div class="font-black text-primary footer-brand-title">龙虾计划</div>
+                    </div>
+                    <div class="t-sm text-secondary">每个人都能轻松接入的API站</div>
+                </div>
+                <div class="footer-right text-right">
+                    <div class="t-sm text-secondary mb-1">&copy; 2024-2026 龙虾计划 . All Rights Reserved.</div>
+                    <div class="t-sm text-secondary">
+                        <span class="footer-block">Designed by Bilibili Up主: 还在路上的小光 <span class="badge badge-bilibili">Bilibili</span></span>
+                        <span class="mx-4 footer-sep">|</span>
+                        <span class="footer-block">公众号: 计划引擎</span>
+                        <span class="mx-4">|</span>
+                        <span class="footer-block">官方QQ讨论群: 1044559389</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-hidden="true">
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-head">
+                <div class="mobile-nav-title">菜单</div>
+                <div class="mobile-nav-close" type="button" id="mobileNavClose">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mobile-nav-links" id="mobileNavContainer">
+            </div>
+        </div>
+    </div>
+
+    <script type="text/html" id="pricingCardTpl">
+        {{# layui.each(d.amountOptions, function(index, option){ }}
+        <button class="amount" type="button"
+            data-option-id="{{ option.id }}"
+            data-amount="{{ option.amount || 0 }}">
+            {{# if(option.isRecommend){ }}
+            <span class="amount-badge">推荐</span>
+            {{# } }}
+            <strong>${{ formatPricingMoney(option.amount) }}</strong>
+            <small>实际支付 ￥{{ formatPricingMoney(option.amount) }}</small>
+        </button>
+        {{# }); }}
+        <button class="amount custom-amount" type="button" data-option-id="custom" data-amount="0">
+            <strong>其它金额</strong>
+            <small>输入自定义充值金额</small>
+        </button>
+    </script>
+    <!-- Modal Template -->
+    <script type="text/html" id="supportModalTpl">
+        <div class="modal-backdrop active" id="supportModal" aria-hidden="true">
+            <div class="modal support-modal">
+                <div class="modal-header support-modal-header">
+                    <div>
+                        <div class="eyebrow" style="margin: 0 0 4px !important; color: #ff5136; font-size: 11px !important; font-weight: 800; letter-spacing: 1.2px !important; text-transform: uppercase;">SUPPORT CENTER</div>
+                        <div class="support-modal-title">需要帮助？进群联系管理员</div>
+                        <div class="support-modal-subtitle">使用问题、支付问题都可以在群内获得协助</div>
+                    </div>
+                    <button class="close-modal btn-close-modal support-close-btn" aria-label="关闭">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body support-modal-body">
+                    <div class="support-cards">
+                        <div class="support-card">
+                            <div class="support-card-icon" style="color: #ff5136; background: #fff1ed;">?</div>
+                            <div class="support-card-title">使用问题</div>
+                            <div class="support-card-desc">模型调用、额度消耗、API 配置等问题，欢迎进群提问。</div>
+                        </div>
+                        <div class="support-card">
+                            <div class="support-card-icon" style="color: #1677ff; background: #e6f0ff;">¥</div>
+                            <div class="support-card-title">支付问题</div>
+                            <div class="support-card-desc">充值未到账、订单异常、退款咨询等问题，请联系管理员。</div>
+                        </div>
+                    </div>
+                    
+                    <div class="support-qq-box">
+                        <div class="qq-info">
+                            <div class="qq-label">官方交流 QQ 群</div>
+                            <div class="qq-number" id="qqGroupNumber">123465789</div>
+                        </div>
+                        <button class="btn btn-primary qq-copy-btn" id="copyQqBtn">复制群号</button>
+                    </div>
+                    
+                    <div class="support-tip">
+                        <div class="tip-title">加群提示</div>
+                        <div class="tip-desc">添加群号并申请加入后，请耐心等待管理员审核通过。入群后请简要描述问题，方便快速处理。</div>
+                    </div>
+                </div>
+                <div class="modal-footer support-modal-footer">
+                    <button class="btn btn-primary support-btn-confirm btn-close-modal" style="background: #ff5136; border-color: #ff5136; color: white;">知道了</button>
+                </div>
+            </div>
+        </div>
+    </script>
+    <script type="text/html" id="activationModalTpl">
+        <div class="modal-backdrop active" id="activationModal" aria-hidden="true">
+            <div class="modal activation-modal">
+                <div class="modal-header activation-modal-header">
+                    <div class="activation-modal-title">激活码激活</div>
+                    <button class="close-modal btn-close-modal activation-close-btn" aria-label="关闭">
+                        <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
+                    </button>
+                </div>
+                <div class="modal-body activation-modal-body">
+                    <div class="form-group activation-form-group">
+                        <input type="text" class="form-input activation-input" id="activationCodeInput" placeholder="请输入您的激活码">
+                    </div>
+                </div>
+                <div class="modal-footer activation-modal-footer">
+                    <button class="btn btn-ghost btn-close-modal activation-btn-cancel">取消</button>
+                    <button class="btn btn-primary activation-btn-confirm" id="confirmActivateBtn">确定</button>
+                </div>
+            </div>
+        </div>
+    </script>
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="../Static/js/qrcode.js"></script>
+    <script src="../Static/js/confetti.browser.min.js"></script>
+    <script src="../Static/js/global.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/payOrder.js"></script>
+    <script src="js/balance-card.js"></script>
+    <script src="js/pricing.js"></script>
+</body>
+
+</html>

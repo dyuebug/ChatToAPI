@@ -1,0 +1,399 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 在线对话</title>
+    <meta name="description" content="龙虾计划在线对话工具">
+
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css?v=1.1">
+    <link rel="stylesheet" href="css/global.css?v=1.1">
+    <link rel="stylesheet" href="css/chat.css?v=1.1">
+    <!-- 引入 KaTeX 用于数学公式渲染 -->
+    <link rel="stylesheet" href="katex/katex.min.css">
+</head>
+
+<body>
+
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+
+    <div class="main-container chat-page-wrapper">
+        <!-- 移动端侧边栏遮罩层 -->
+        <div class="sidebar-overlay" id="sidebar-overlay"></div>
+
+        <div class="chat-layout">
+            <!-- 左侧：侧边栏（助手+历史记录） -->
+            <div class="chat-sidebar left-sidebar card">
+                <div class="sidebar-action-wrap" style="padding: 20px 14px 16px; position: relative;">
+                    <button id="new-chat-btn" class="btn w-full" style="height: 48px; display: flex; align-items: center; justify-content: center; gap: 10px; border-radius: 8px; background: var(--brand, #ff512b); color: #fff; font-weight: 800; box-shadow: 0 8px 18px rgba(255, 81, 43, .16); border: none; font-size: 15px;">
+                        <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                        开始对话
+                    </button>
+                </div>
+                
+                <div class="sidebar-content" style="padding: 0 16px; display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                    <!-- 助手设置 -->
+                    <div class="sidebar-section mb-15" style="display: flex; flex-direction: column; max-height: 40%;">
+                        <div class="section-header flex-between-center mb-8" style="padding: 8px 0; border-bottom: 1px solid var(--chat-border); flex-shrink: 0;">
+                            <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">助手设置</span>
+                            <button id="new-assistant-btn" class="icon-btn-sm" title="新建助手" style="color: var(--text-secondary); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                                 <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 5v14"></path><path d="M5 12h14"></path></svg>
+                             </button>
+                        </div>
+                        <div id="assistants-list" style="overflow-y: auto; flex: 1; min-height: 0;"></div>
+                    </div>
+                    
+                    <!-- 历史记录 -->
+                    <div class="sidebar-section" style="display: flex; flex-direction: column; flex: 1; min-height: 0;">
+                        <div class="section-header flex-between-center mb-8" style="padding: 8px 0; border-bottom: 1px solid var(--chat-border); flex-shrink: 0;">
+                            <span style="font-size: 13px; color: var(--text-secondary); font-weight: 600;">历史记录</span>
+                            <button id="history-filter-btn" class="icon-btn-sm" title="筛选/搜索" style="color: var(--text-secondary); width: 26px; height: 26px; display: flex; align-items: center; justify-content: center; padding: 0;">
+                                 <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor"><path d="M10 18h4v-2h-4v2zM3 6v2h18V6H3zm3 7h12v-2H6v2z"/></svg>
+                             </button>
+                        </div>
+                        <div id="history-search-wrap" style="display: none; padding: 0 0 8px; flex-shrink: 0;">
+                            <input type="text" id="history-search-input" placeholder="搜索历史记录..." style="width: 100%; padding: 6px 10px; border: 1px solid var(--chat-border); border-radius: 6px; font-size: 13px; outline: none; box-sizing: border-box; background: #f9f9fa;">
+                        </div>
+                        <div id="history-list" style="overflow-y: auto; flex: 1; min-height: 0;"></div>
+                    </div>
+                </div>
+                
+                <div class="sidebar-footer" style="padding: 16px 14px; border-top: 1px solid var(--chat-border); flex-shrink: 0; margin-top: auto;">
+                    <button class="btn w-full" style="height: 46px; display: flex; align-items: center; justify-content: center; gap: 8px; border-radius: 8px; background: #fff; color: var(--brand, #ff512b); border: 1px solid var(--brand, #ff512b); font-weight: 800; font-size: 15px;" onclick="window.location.href='pricing.shtml'">
+                        <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"></polygon>
+                        </svg>
+                        开通会员
+                    </button>
+                </div>
+            </div>
+
+            <!-- 中间：聊天主体 -->
+            <div class="chat-container card" style="background: var(--canvas, #f7f7f8); position: relative;">
+                <!-- 移动端顶部菜单，桌面端隐藏 -->
+                <header class="chat-header mobile-only" style="border-bottom: 1px solid var(--chat-border); position: relative; height: 50px;">
+                    <div class="actions left-actions" style="position: absolute; left: 14px; top: 50%; transform: translateY(-50%); z-index: 10;">
+                        <button id="mobile-sidebar-toggle-chat" title="菜单" class="icon-btn">
+                            <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M3 18h18v-2H3v2zm0-5h18v-2H3v2zm0-7v2h18V6H3z"/></svg>
+                        </button>
+                    </div>
+                    <div class="current-assistant-info" style="display: flex; align-items: center; justify-content: center; width: 100%; height: 100%;">
+                        <div class="t-md font-bold" id="current-assistant-name">请新建或选择助手</div>
+                    </div>
+                </header>
+
+                <!-- 空状态页 -->
+                <div id="empty-state" class="empty-state" style="display: flex; flex: 1; flex-direction: column; align-items: center; justify-content: center; text-align: center; background: transparent; min-height: 0; overflow-y: auto;">
+                    <div class="empty-icon" style="width: 54px; height: 54px; margin: 0 auto 20px; display: grid; place-items: center; border-radius: 50%; border: 1px solid var(--line, #eeeeef); background: #fff; color: var(--brand, #ff512b);">
+                        <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor"><path d="M20 2H4c-1.1 0-2 .9-2 2v18l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2z"/></svg>
+                    </div>
+                    <h1 style="margin: 0 0 12px; font-size: 31px; line-height: 1.2; letter-spacing: 0;">开始一场对话</h1>
+                    <p style="margin: 0 auto 28px; max-width: 650px; color: #777b82; font-size: 15px; line-height: 1.8;">选择左侧助手，输入你的问题，然后在右下角选择模型开始对话</p>
+                    
+                    <div class="quick-grid">
+                        <button class="quick-card" data-prompt="帮我分析这份业务数据，并输出重点结论。">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M18.7 8l-5.1 5.2-2.8-2.7L7 14.3"/></svg>
+                            分析数据
+                        </button>
+                        <button class="quick-card" data-prompt="帮我设计一段小说开头，要求有画面感、冲突和悬念。">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 19.5v-15A2.5 2.5 0 0 1 6.5 2H20v20H6.5a2.5 2.5 0 0 1 0-5H20"/></svg>
+                            小说写作
+                        </button>
+                        <button class="quick-card" data-prompt="帮我检查这段代码，并给出可执行的修改建议。">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                            代码
+                        </button>
+                        <button class="quick-card" data-prompt="基于我的目标，给我三条具体建议。">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 2v20"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                            获取建议
+                        </button>
+                    </div>
+                </div>
+
+                <div id="chat-box" style="display: none; background: transparent;"></div>
+
+                <div class="input-area-wrapper">
+                    <div id="preview-area" class="preview-area" style="display: none; padding: 0 0 10px 0; flex-wrap: wrap; gap: 10px; justify-content: flex-start;"></div>
+                    <div class="input-area" style="border: 1px solid var(--line-strong, #e6e6e8); border-radius: 18px; background: #fff; box-shadow: 0 15px 42px rgba(22, 24, 29, .06); position: relative;">
+                        <input type="file" id="file-upload" class="d-none" multiple>
+                        
+                        <textarea id="user-input" rows="2" placeholder="输入消息..."></textarea>
+                        
+                        <div class="composer-bottom">
+                            <div class="tool-tray">
+                                <button class="icon-btn attachment-btn" id="attachment-btn" title="上传附件">
+                                    <svg viewBox="0 0 24 24" width="20" height="20" fill="currentColor"><path d="M16.5 6v11.5c0 2.21-1.79 4-4 4s-4-1.79-4-4V5a2.5 2.5 0 0 1 5 0v10.5c0 .55-.45 1-1 1s-1-.45-1-1V6H10v9.5a2.5 2.5 0 0 0 5 0V5c0-2.21-1.79-4-4-4S7 2.79 7 5v12.5c0 3.04 2.46 5.5 5.5 5.5s5.5-2.46 5.5-5.5V6h-1.5z"/></svg>
+                                </button>
+                            </div>
+                            
+                            <div class="send-tray">
+                                <!-- Custom Model Dropdown in Input Area -->
+                                <div class="custom-model-dropdown" id="custom-model-dropdown">
+                                    <button type="button" class="dropdown-toggle" id="model-dropdown-toggle">
+                                        <div style="display: flex; align-items: center; gap: 8px;">
+                                            <svg viewBox="0 0 24 24" width="16" height="16" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="4" y="4" width="16" height="16" rx="2"></rect><rect x="9" y="9" width="6" height="6"></rect><path d="M9 1v3"></path><path d="M15 1v3"></path><path d="M9 20v3"></path><path d="M15 20v3"></path><path d="M20 9h3"></path><path d="M20 14h3"></path><path d="M1 9h3"></path><path d="M1 14h3"></path></svg>
+                                            <span class="selected-model-name" style="max-width: 100px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">选择模型</span>
+                                        </div>
+                                        <svg class="chevron" viewBox="0 0 24 24" width="14" height="14" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                                    </button>
+                                    <div class="dropdown-menu shadow-lg" id="model-dropdown-menu" style="width: 400px; display: none;">
+                                        <div class="dropdown-layout">
+                                            <div class="provider-list" id="provider-list" style="width: 120px; border-right: 1px solid var(--chat-border); padding-right: 8px;">
+                                                <div class="provider-title" style="font-size: 12px; color: var(--text-tertiary); padding: 8px; margin-bottom: 4px;">模型厂家</div>
+                                                <!-- Providers populated by JS -->
+                                            </div>
+                                            <div class="model-list" style="flex: 1; padding-left: 8px;">
+                                                <div class="search-bar" style="margin-bottom: 8px;">
+                                                    <div style="position: relative; display: flex; align-items: center; border: 1px solid var(--chat-border); border-radius: 6px; padding: 0 8px; background: #fafafa;">
+                                                        <svg viewBox="0 0 24 24" width="14" height="14" fill="var(--text-tertiary)"><path d="M15.5 14h-.79l-.28-.27A6.471 6.471 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16c1.61 0 3.09-.59 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0C7.01 14 5 12.01 5 9.5S7.01 5 9.5 5 14 7.01 14 9.5 12.01 14 9.5 14z"/></svg>
+                                                        <input type="text" placeholder="搜索模型..." style="width: 100%; padding: 6px 8px; border: none; background: transparent; font-size: 13px; outline: none;">
+                                                    </div>
+                                                </div>
+                                                <div class="dropdown-list" id="model-dropdown-list" style="max-height: 250px; overflow-y: auto;">
+                                                    <!-- Options populated by JS -->
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <button id="send-btn" class="icon-btn send-btn">
+                                    <svg viewBox="0 0 24 24" width="18" height="18" stroke="currentColor" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m22 2-7 20-4-9-9-4Z"></path><path d="M22 2 11 13"></path></svg>
+                                    <span>发送</span>
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 管理模型（助手列表）模板 -->
+        <script type="text/html" id="assistantsManagerTpl">
+            <div class="modal-backdrop active z-3000" id="assistantsListModal" aria-hidden="true">
+                <div class="modal modal-md">
+                    <div class="modal-header">
+                        <h3 class="t-h3">管理模型与助手</h3>
+                        <button class="close-modal btn-close-assistants-list" aria-label="关闭">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-body modal-body-scroll">
+                        <div id="modal-assistants-list"></div>
+                        <button type="button" id="modal-new-assistant-btn" class="btn btn-outline mt-15 w-full">新建助手</button>
+                    </div>
+                </div>
+            </div>
+        </script>
+        <script type="text/html" id="assistantFormTpl">
+            <div class="modal-backdrop active" id="assistantModal" aria-hidden="true">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="t-h3">{{ d.assistantId ? '编辑助手' : '新建助手' }}</h3>
+                        <button class="close-modal btn-cancel-assistant" aria-label="关闭">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-body layui-form" lay-filter="assistant-form">
+                        <input type="hidden" id="assistant-id" value="{{ d.assistantId || '' }}">
+                        <div class="form-group">
+                            <label class="form-label">助手名称</label>
+                            <input type="text" id="assistant-name" required class="form-input" value="{{ d.name || '' }}">
+                        </div>
+                        <div class="form-group">
+                            <label class="form-label">最大历史</label>
+                            <input type="number" id="max-history" min="0" step="1" class="form-input" value="{{ d.maxHistory || 99 }}">
+                        </div>
+
+                        <div class="switch-container switch-wrap">
+                            <label for="prefill-toggle" class="switch-label">启用系统填充</label>
+                            <label class="switch">
+                                <input type="checkbox" id="prefill-toggle" {{ d.prefillEnabled !== false ? 'checked' : '' }}>
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+
+                        <div id="system-prompt-container" style="display: {{ d.prefillEnabled !== false ? 'block' : 'none' }};">
+                            <div class="form-group mb-15">
+                                <label class="form-label mb-8">系统提示词</label>
+                                <textarea id="system-prompt" rows="4" placeholder="输入系统提示词..." class="form-input textarea-auto">{{ d.systemPrompt || '' }}</textarea>
+                            </div>
+
+                            <div class="form-group mb-15">
+                                <div class="flex-between-center mb-8">
+                                    <label class="form-label mb-0">系统提示词预设</label>
+                                    <button type="button" id="add-default-prompt-btn" class="btn-text-primary">+ 添加</button>
+                                </div>
+                                <div id="default-prompts-list" class="prompts-list-container">
+                                    <!-- 动态渲染 -->
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-ghost btn-cancel-assistant">取消</button>
+                        <button class="btn btn-primary" id="save-assistant-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </script>
+
+
+
+        <!-- 编辑对话名称模板 -->
+        <script type="text/html" id="editConvTpl">
+            <div class="modal-backdrop active" id="editConvModal" aria-hidden="true">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="t-h3">编辑对话名称</h3>
+                        <button class="close-modal btn-cancel-edit" aria-label="关闭">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-body p-15">
+                        <div class="form-group">
+                            <input type="text" id="conv-title-input" class="form-input" value="{{ d.title }}">
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-ghost btn-cancel-edit">取消</button>
+                        <button class="btn btn-primary" id="save-conv-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </script>
+
+        <!-- 添加/编辑系统默认填充模板 -->
+        <script type="text/html" id="promptFormTpl">
+            <div class="modal-backdrop active z-3000" id="promptFormModal" aria-hidden="true">
+                <div class="modal">
+                    <div class="modal-header">
+                        <h3 class="t-h3">{{ d.index !== undefined ? '编辑系统默认填充' : '添加系统默认填充' }}</h3>
+                        <button class="close-modal btn-cancel-prompt" aria-label="关闭">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-body p-15">
+                        <input type="hidden" id="prompt-index" value="{{ d.index !== undefined ? d.index : '' }}">
+                        <div class="form-group">
+                            <label class="form-label">名称</label>
+                            <input type="text" id="prompt-form-name" class="form-input" placeholder="例如: 翻译专家" value="{{ d.name || '' }}">
+                        </div>
+                        <div class="form-group mt-10">
+                            <label class="form-label">内容</label>
+                            <textarea id="prompt-form-content" class="form-input textarea-auto" rows="4" placeholder="输入提示词内容...">{{ d.content || '' }}</textarea>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-ghost btn-cancel-prompt">取消</button>
+                        <button class="btn btn-primary" id="save-prompt-btn">保存</button>
+                    </div>
+                </div>
+            </div>
+        </script>
+
+
+        <!-- 删除确认模板 -->
+        <script type="text/html" id="confirmTpl">
+            <div class="modal-backdrop active z-3000" id="customConfirmModal" aria-hidden="true">
+                <div class="modal modal-sm">
+                    <div class="modal-header">
+                        <h3 class="t-h3">{{ d.title }}</h3>
+                        <button class="close-modal btn-cancel-confirm" aria-label="关闭">
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z"/></svg>
+                        </button>
+                    </div>
+                    <div class="modal-body p-20-15">
+                        <div class="confirm-msg-wrap">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="var(--danger, #FF4D4F)"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/></svg>
+                            <span>{{ d.content }}</span>
+                        </div>
+                    </div>
+                    <div class="modal-footer">
+                        <button class="btn btn-ghost btn-cancel-confirm">取消</button>
+                        <button class="btn btn-danger-solid" id="btn-ok-confirm">确定删除</button>
+                    </div>
+                </div>
+            </div>
+        </script>
+    </div>
+
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="js/marked.min.js"></script>
+    <script src="js/highlight.min.js"></script>
+    <!-- 引入 KaTeX 用于数学公式渲染  -->
+    <script src="katex/katex.min.js"></script>
+    <script src="js/marked-katex-extension.umd.js"></script>
+    
+    <script src="../Static/js/global.js?v=1.5"></script>
+    <script src="js/global.js?v=1.5"></script>
+    <script src="js/chat.js?v=1.5"></script>
+</body>
+
+</html>

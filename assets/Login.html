@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>登录</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/Global.css">
+    <link rel="stylesheet" href="css/Global.css">
+    <link rel="stylesheet" href="css/iconfont.css">
+    <link rel="stylesheet" href="css/Login.css">
+</head>
+
+<body>
+    <div class="layui-fluid">
+        <div class="layui-row login-left">
+            <div class="layui-row login-img">
+                <img src="img/login-left-bg.png" />
+            </div>
+            <div class="layui-row layui-font-28">
+                ChatGPT 官网服务
+            </div>
+            <div class="layui-row">
+                原版UI界面, 内置企业级team/plus节点，
+            </div>
+            <div class="layui-row">
+                支持GPT4o等最新模型 / GPTs / Dall-e绘图 / 文档 / 更多高级功能
+            </div>
+        </div>
+        <div class="layui-row login-right">
+            <div class="layui-row login-content">
+                <div class="layui-row layui-font-28 title">
+                    ChatOpens
+                </div>
+                <div class="layui-row wechat-shadow">
+                    <div class="layui-row">
+                        <div class="layui-tab layui-tab-brief" lay-filter="LoginMethod">
+                            <ul class="layui-tab-title">
+                                <li class="layui-this">微信扫码登录</li>
+                                <li>动态码登录</li>
+                                <!-- <li>邮箱登录</li> -->
+                            </ul>
+                            <div class="layui-tab-content" style="height: 250px;">
+                                <div class="layui-tab-item layui-show">
+                                    <div id="qrcode" style="margin:20px auto;"></div>
+                                </div>
+                                <div class="layui-tab-item" style="text-align:center;">
+                                    <div class="layui-row">
+                                        <img src="img/qrcode.jpg" class="qrcode" />
+                                    </div>
+                                    <div class="layui-row">
+                                        <div class="layui-input-group" style="margin: 0 30px;">
+                                            <input type="text" placeholder="请输入动态码" class="layui-input" id="txtCode" />
+                                            <div class="layui-input-split layui-input-suffix" style="cursor: pointer;"
+                                                id="divLogin">
+                                                <i class="layui-icon layui-icon-ok"></i>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="layui-tab-item" style="text-align:center; padding: 20px 0;">
+                                    <div class="layui-row" style="margin-bottom: 20px;">
+                                        <div class="layui-input-group"
+                                            style="margin: 0 30px; width: calc(100% - 60px);">
+                                            <input type="text" placeholder="请输入邮箱" class="layui-input" id="txtEmail" />
+                                            <div class="layui-input-split layui-input-suffix"
+                                                style="cursor: pointer; width: 110px;" id="btnSendCode">
+                                                获取验证码
+                                            </div>
+                                        </div>
+                                    </div>
+                                    <div class="layui-row">
+                                        <div class="layui-input-group"
+                                            style="margin: 0 30px; width: calc(100% - 60px);">
+                                            <input type="text" placeholder="请输入验证码" class="layui-input"
+                                                id="txtEmailCode" />
+                                            <div class="layui-input-split layui-input-suffix"
+                                                style="cursor: pointer; width: 110px; background-color: #1E9FFF; color: #fff; border: 1px solid #1E9FFF;"
+                                                id="btnEmailLogin">
+                                                登录 / 注册
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="layui-row wechat">
+                        <span class="iconfont icon-weixin1"></span>
+                        <span id="spanMsg"></span>
+                    </div>
+                </div>
+                <div class="layui-row layui-font-14 tip">
+                    <div class="layui-row">
+                        关注公众号即可登录
+                    </div>
+                    <div class="layui-row">
+                        首次登录赠送24小时会员
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script type="text/javascript" src="../Static/layui/layui.js"></script>
+    <script type="text/javascript" src="../Static/js/jquery.js"></script>
+    <script type="text/javascript" src="js/qrcode.js"></script>
+    <script type="text/javascript" src="../Static/js/Global.js"></script>
+    <script type="text/javascript" src="js/Global.js"></script>
+    <script type="text/javascript" src="js/Login.js"></script>
+</body>
+
+</html>

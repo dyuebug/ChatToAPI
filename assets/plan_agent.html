@@ -1,0 +1,496 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 成立分站</title>
+
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/agent.css">
+</head>
+
+<body>
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+
+    <div class="container main-container agent-container">
+        <!-- Unopened Banner -->
+        <div id="unopenedBanner" class="hidden">
+            <div class="unopened-banner">
+                <div class="unopened-banner-content">
+                    <div class="unopened-banner-title">OpenClawPlan.com</div>
+                    <div class="unopened-banner-desc">看好我们？点击成立分站！立即加入我们！</div>
+                    <div class="unopened-banner-text">分站的用户注册后购买产品后获取分红收益</div>
+                    <div class="unopened-banner-text">适合大学生兼职副业，博主流量变现等</div>
+                </div>
+                <div class="unopened-banner-action">
+                    <div class="unopened-card mb-4">
+                        <div class="unopened-card-title text-black">
+                            分站说明:
+                        </div>
+                        <div class="unopened-card-text">
+                            成立分站后你将获得你的专属分站链接，你可以在任意平台（B站，小红书，抖音）宣传你的专属链接吸引用户下单，从而获取分红收益
+                        </div>
+                        <div class="unopened-card-text">
+                            成立龙虾计划分站不是免费的，我们将收取1999元的运维成本
+                        </div>
+                        <div class="unopened-card-text">
+                            具体分红细节和提现规则请联系B站Up主：还在路上的小光
+                        </div>
+                    </div>
+                    
+                    <div class="unopened-action-card cursor-pointer" onclick="buyAmount(1999)">
+                        <div class="flex-1">
+                            <div class="flex items-center gap-2 mb-1">
+                                <span class="layui-badge hot-badge">Hot</span>
+                                <span class="font-bold text-lg action-title">成立分站</span>
+                            </div>
+                            <div class="text-sm action-desc">点击成立分站/获取分站链接</div>
+                        </div>
+                        <div class="vip-icon">
+                            <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                                <path d="M5 16L3 5l5.5 5L12 4l3.5 6L21 5l-2 11H5zm14 3c0 .6-.4 1-1 1H6c-.6 0-1-.4-1-1v-1h14v1z"/>
+                            </svg>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div id="agentContent" class="hidden">
+            <div class="mb-5">
+                <div class="t-h2">我的分站</div>
+                <div class="text-secondary mt-2">管理您的分站信息与收益</div>
+            </div>
+
+            <!-- Info Card -->
+            <div class="card mb-5">
+                <div class="flex flex-wrap gap-6 items-start justify-between">
+                    <div class="flex-1">
+                        <div class="t-h3 mb-4">我的分站信息</div>
+                        <div class="p-4 bg-gray-50 border border-gray-100 rounded-lg substation-link-wrap">
+                            <div class="font-bold mb-3 whitespace-nowrap">我的分站链接：</div>
+                            <div class="flex items-center gap-3 substation-link-actions">
+                                <input type="text" class="form-input flex-1 substation-link-input"
+                                    value="https://wuzhenghui.openclawplan.com/" readonly id="substationLink">
+                                <div class="flex gap-2 substation-btn-group">
+                                    <div class="btn btn-primary whitespace-nowrap" onclick="Layout.openModal('editLink')">编辑链接</div>
+                                    <div class="btn btn-outline whitespace-nowrap" onclick="Substation.copyLink()">复制链接</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="banner-card substation-banner-card">
+                        <div class="card-title text-primary flex items-center gap-2 mb-3 font-bold">
+                            <svg viewBox="0 0 24 24" width="18" height="18" fill="currentColor">
+                                <path
+                                    d="M11 7h2v2h-2zm0 4h2v6h-2zm1-9C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z" />
+                            </svg>
+                            分站说明
+                        </div>
+                        <div class="card-text text-sm text-secondary">
+                            <p class="mb-2">成立分站后你将获得你的专属分站链接，你可以在任意平台 (B站，小红书，抖音) 宣传你的专属链接吸引用户下单，从而获取分红收益</p>
+                            <p class="mb-2">成立龙虾计划分站不是免费的，我们将收取1999元的运维成本</p>
+                            <p>具体分红细节和提现规则请联系B站Up主：还在路上的小光</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="substation-grid">
+                <!-- Left Column -->
+                <div class="substation-left">
+                    <div class="income-card">
+                        <div class="income-title">总收入：</div>
+                        <div class="income-amount"><span id="totalIncome">0.00</span> <span class="income-unit">元</span>
+                        </div>
+                        <div class="income-stats flex justify-between items-end mt-4">
+                            <div class="flex gap-6">
+                                <div>
+                                    <div class="stat-value" id="remainingAmount">0.00 <span class="stat-unit">元</span>
+                                    </div>
+                                    <div class="stat-label">剩余可提金额</div>
+                                </div>
+                                <div>
+                                    <div class="stat-value" id="withdrawingAmount">0.00 <span class="stat-unit">元</span>
+                                    </div>
+                                    <div class="stat-label">提现中金额</div>
+                                </div>
+                            </div>
+                            <div class="btn btn-light withdraw-btn" onclick="Layout.openModal('withdraw')">立即提现</div>
+                        </div>
+                    </div>
+
+                    <div class="stats-list-card mt-4">
+                        <div class="stat-list-item">
+                            <div class="flex items-center gap-2 text-secondary">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path
+                                        d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8zm.31-8.86c-1.77-.45-2.34-.94-2.34-1.67 0-.84.79-1.43 2.1-1.43 1.38 0 1.9.66 1.94 1.64h1.71c-.05-1.34-.87-2.57-2.49-2.97V5H10.9v1.69c-1.51.32-2.72 1.3-2.72 2.81 0 1.79 1.49 2.69 3.66 3.21 1.95.46 2.34 1.15 2.34 1.87 0 .53-.39 1.39-2.1 1.39-1.6 0-2.23-.72-2.32-1.64H8.04c.1 1.7 1.36 2.66 2.86 2.97V19h2.34v-1.67c1.52-.29 2.72-1.16 2.73-2.77-.01-2.2-1.9-2.96-3.66-3.42z" />
+                                </svg>
+                                购买订单总数
+                            </div>
+                            <div class="font-bold" id="totalOrders">0</div>
+                        </div>
+                        <div class="stat-list-item">
+                            <div class="flex items-center gap-2 text-secondary">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path
+                                        d="M15 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm-9-2V7H4v3H1v2h3v3h2v-3h3v-2H6zm9 4c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                                今日增加用户数
+                            </div>
+                            <div class="font-bold" id="todayUsers">0</div>
+                        </div>
+                        <div class="stat-list-item">
+                            <div class="flex items-center gap-2 text-secondary">
+                                <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor">
+                                    <path
+                                        d="M12 12c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm0 2c-2.67 0-8 1.34-8 4v2h16v-2c0-2.66-5.33-4-8-4z" />
+                                </svg>
+                                分站用户总数
+                            </div>
+                            <div class="font-bold" id="totalUsers">0</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Right Column -->
+                <div class="substation-right">
+                    <div class="card h-full">
+                        <div class="tabs-container mb-4">
+                            <div class="flex justify-center">
+                                <div class="tabs-nav">
+                                    <div class="tab-item active" data-tab="orders">订单记录</div>
+                                    <div class="tab-item" data-tab="withdraws">提现记录</div>
+                                    <div class="tab-item" data-tab="users">注册用户</div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Orders Tab -->
+                        <div class="tab-content active" id="tab-orders">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>订单号</th>
+                                            <th>付款金额</th>
+                                            <th>支付方式</th>
+                                            <th>佣金</th>
+                                            <th>下单时间</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="ordersTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-secondary py-8">无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Withdraws Tab -->
+                        <div class="tab-content hidden" id="tab-withdraws">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>提现时间</th>
+                                            <th>提现金额</th>
+                                            <th>提现渠道</th>
+                                            <th>提现状态</th>
+                                            <th>提现备注</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="withdrawsTableBody">
+                                        <tr>
+                                            <td colspan="5" class="text-center text-secondary py-8">无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Users Tab -->
+                        <div class="tab-content hidden" id="tab-users">
+                            <div class="table-container">
+                                <table class="table">
+                                    <thead>
+                                        <tr>
+                                            <th>用户Id</th>
+                                            <th>微信标识</th>
+                                            <th>昵称</th>
+                                            <th>注册时间</th>
+                                        </tr>
+                                    </thead>
+                                    <tbody id="usersTableBody">
+                                        <tr>
+                                            <td colspan="4" class="text-center text-secondary py-8">无数据</td>
+                                        </tr>
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+
+                        <!-- Pagination -->
+                        <div class="pagination-container mt-4" id="pagination">
+                            <div id="paginationControls"></div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Edit Link Modal -->
+    <div class="modal-backdrop" id="editLinkModal" aria-hidden="true">
+        <div class="modal">
+            <div class="modal-header">
+                <div class="modal-title">编辑分站链接</div>
+                <div class="close-modal">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <div class="form-label">域名前缀:</div>
+                    <input type="text" class="form-input" id="substationPrefix" value="wuzhenghui">
+                </div>
+                <div class="form-group flex items-center gap-2 mt-4">
+                    <div class="form-label mb-0">统一域名:</div>
+                    <div class="text-secondary" id="baseDomainText">openclawplan.com</div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <div class="btn btn-primary" onclick="Substation.saveLink()">提交</div>
+                <div class="btn btn-outline" onclick="Layout.closeModal('editLink')">取消</div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Withdraw Modal -->
+    <div class="modal-backdrop" id="withdrawModal" aria-hidden="true">
+        <div class="modal withdraw-modal">
+            <div class="modal-header">
+                <div class="modal-title">提现申请表</div>
+                <div class="close-modal">
+                    <svg viewBox="0 0 24 24" width="24" height="24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="modal-body">
+                <div class="form-group flex items-center gap-4">
+                    <div class="form-label mb-0 withdraw-form-label">提现金额(分)</div>
+                    <input type="number" class="form-input flex-1" id="withdrawAmount" placeholder="请输入提现金额（单位为分）">
+                </div>
+                <div class="form-group flex items-center gap-4 mt-4">
+                    <div class="form-label mb-0 withdraw-form-label">提现渠道</div>
+                    <select class="form-input flex-1" id="withdrawChannel">
+                        <option value="支付宝">支付宝</option>
+                        <option value="微信">微信</option>
+                    </select>
+                </div>
+                <div class="form-group flex items-center gap-4 mt-4">
+                    <div class="form-label mb-0 withdraw-form-label">提现账号</div>
+                    <input type="text" class="form-input flex-1" id="withdrawAccount" placeholder="请输入提现账号">
+                </div>
+                <div class="form-group flex items-start gap-4 mt-4">
+                    <div class="form-label mb-0 mt-2 withdraw-form-label">提现备注</div>
+                    <textarea class="form-input flex-1" id="withdrawRemark" rows="3"
+                        placeholder="注：提现前添加OpenClawPlan分站站长微信: gqzn323ai"></textarea>
+                </div>
+            </div>
+            <div class="modal-footer withdraw-modal-footer">
+                <div class="btn btn-primary" onclick="Substation.submitWithdraw()">申请提现</div>
+                <div class="btn btn-outline" onclick="Layout.closeModal('withdraw')">取消</div>
+            </div>
+        </div>
+    </div>
+
+        <div class="footer">
+        <div class="container">
+            <div class="flex flex-wrap justify-between items-center gap-5">
+                <div class="footer-left">
+                    <div class="brand-logo flex items-center gap-2 mb-2">
+                        <div class="font-black text-primary footer-brand-title">龙虾计划</div>
+                    </div>
+                    <div class="t-sm text-secondary">每个人都能轻松接入的API站</div>
+                </div>
+                <div class="footer-right text-right">
+                    <div class="t-sm text-secondary mb-1">&copy; 2024-2026 龙虾计划 . All Rights Reserved.</div>
+                    <div class="t-sm text-secondary">
+                        <span class="footer-block">Designed by Bilibili Up主: 还在路上的小光 <span class="badge badge-bilibili">Bilibili</span></span>
+                        <span class="mx-4 footer-sep">|</span>
+                        <span class="footer-block">公众号: 计划引擎</span>
+                        <span class="mx-4">|</span>
+                        <span class="footer-block">官方QQ讨论群: 1044559389</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-hidden="true">
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-head">
+                <div class="mobile-nav-title">菜单</div>
+                <div class="mobile-nav-close" type="button" id="mobileNavClose">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mobile-nav-links" id="mobileNavContainer">
+            </div>
+        </div>
+    </div>
+
+    <!-- Orders Template -->
+    <script type="text/html" id="ordersTableTpl">
+        {{# layui.each(d, function(index, item){ }}
+        <tr>
+            <td class="text-secondary">{{ item.orderNo }}</td>
+            <td class="font-bold">￥{{ formatMoney(item.amount) }}</td>
+            <td>{{ item.payMode === 'WECHAT' ? '微信' : (item.payMode === 'ALIPAY' ? '支付宝' : item.payMode) }}</td>
+            <td class="font-bold text-success">￥{{ formatMoney(item.commission) }}</td>
+            <td class="text-secondary">{{ formatDate(item.orderTime) }}</td>
+        </tr>
+        {{# }); }}
+        {{# if(d.length === 0){ }}
+        <tr><td colspan="5" class="text-center text-secondary py-8">无数据</td></tr>
+        {{# } }}
+    </script>
+
+    <!-- Withdraws Template -->
+    <script type="text/html" id="withdrawsTableTpl">
+        {{# layui.each(d, function(index, item){ }}
+        <tr>
+            <td class="text-secondary">{{ formatDate(item.time) }}</td>
+            <td class="font-bold">￥{{ formatMoney(item.amount) }}</td>
+            <td>{{ item.method }}</td>
+            <td>{{ item.status }}</td>
+            <td class="text-secondary">{{ item.remark }}</td>
+        </tr>
+        {{# }); }}
+        {{# if(d.length === 0){ }}
+        <tr><td colspan="5" class="text-center text-secondary py-8">无数据</td></tr>
+        {{# } }}
+    </script>
+
+    <!-- Users Template -->
+    <script type="text/html" id="usersTableTpl">
+        {{# layui.each(d, function(index, item){ }}
+        <tr>
+            <td>{{ item.userId }}</td>
+            <td class="text-secondary">{{ item.openId }}</td>
+            <td>{{ item.nickName }}</td>
+            <td class="text-secondary">{{ formatDate(item.regTime) }}</td>
+        </tr>
+        {{# }); }}
+        {{# if(d.length === 0){ }}
+        <tr><td colspan="4" class="text-center text-secondary py-8">无数据</td></tr>
+        {{# } }}
+    </script>
+
+    <!-- Pay QRCode Template -->
+    <script type="text/html" id="qrCodeDialogTpl">
+        <div class="layui-tab layui-tab-brief pay-tab" lay-filter="payTab">
+            <ul class="layui-tab-title pay-tab-title">
+                {{# layui.each(d.list, function(index, item){ }}
+                <li class="{{ index === 0 ? 'layui-this pay-tab-first' : 'pay-tab-other' }}">{{ item.name }}</li>
+                {{# }); }}
+            </ul>
+            <div class="layui-tab-content pay-tab-content">
+                {{# layui.each(d.list, function(index, item){ }}
+                <div class="layui-tab-item {{ index === 0 ? 'layui-show' : '' }}">
+                    <div id="qrcode_{{ index }}" class="pay-qrcode-container"></div>
+                </div>
+                {{# }); }}
+            </div>
+        </div>
+    </script>
+
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="../Static/js/qrcode.js"></script>
+    <script src="../Static/js/confetti.browser.min.js"></script>
+    <script src="../Static/js/global.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/payOrder.js"></script>
+    <script src="js/agent.js"></script>
+</body>
+
+</html>

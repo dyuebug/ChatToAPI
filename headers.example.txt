@@ -1,0 +1,6 @@
+# 把浏览器 Network → f/conversation 请求的 Request Headers 原文(不含 :method/:path/:scheme/:authority 行)
+# 粘贴到本文件(或下方任一形如 name: value 的多行文本),然后运行:
+#   node scripts/import-headers.mjs
+# 脚本会提取 cookie / authorization / oai-device-id 等字段写入 config.json。
+authorization: Bearer
+cookie:

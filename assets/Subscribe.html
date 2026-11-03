@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>开通会员</title>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no">
+    <link rel="stylesheet" href="../Static/layui/css/layui.css" />
+    <link rel="stylesheet" href="../Static/css/Global.css" />
+    <link rel="stylesheet" href="css/Global.css" />
+    <link rel="stylesheet" href="css/Subscribe.css" />
+</head>
+
+<body>
+    <div class="layui-fluid" id="divSubscribe">
+        <div class="layui-row layui-font-14" style="text-align: center; color: #999; margin-bottom: 15px;">
+            注：会员服务为虚拟产品，支付成功后不支持退款，请于免费节点中试用满意后再进行下单
+        </div>
+        <div class="layui-row layui-col-space16" id="divPackageList"></div>
+        <div class="layui-row layui-font-20">
+            <div class="layui-col-xs12 layui-col-sm9 layui-col-md9" data-tip>
+                <div class="layui-row" id="divSubscribeNotification" style="border: 3px solid rgba(28, 31, 35, .08); padding: 5px 15px; border-radius: 15px; display: inline-block; margin-top: 5px;"></div>
+            </div>
+            <div class="layui-col-xs12 layui-col-sm3 layui-col-md3">
+                <div class="layui-row" data-action="CardActivate" style="border: 3px solid rgba(28, 31, 35, .08); padding: 5px 15px; border-radius: 15px; display: inline-block; cursor: pointer; float: right; margin-top: 5px; ">
+                    使用激活码激活VIP
+                </div>
+            </div>
+        </div>
+    </div>
+    <script id="tplPackageItem" type="text/html">
+        <div class="layui-col-xs12 layui-col-sm6 layui-col-md4">
+            <div class="layui-row package">
+                {{# if (d.showBadge) { }}
+                <div class="layui-row badge">
+                    限时活动
+                </div>
+                {{# } }}
+                <div class="layui-row">
+                    <img src="{{ d.img }}" />
+                </div>
+                <div class="layui-row layui-font-20 title" style="font-weight:bold;">{{ d.title }}</div>
+                <div class="layui-row layui-font-18 price" style="font-weight:bold;">
+                    共￥{{ d.amountText }}
+                </div>
+                <div class="layui-row description">
+                    {{- d.description }}
+                </div>
+                <div class="layui-row description">
+                    使用次数：{{ d.frequencyNum }}次/每{{ d.frequencyInterval }}{{ d.frequencyUnit }}
+                </div>
+                <div class="layui-row">
+                    <button type="button" class="layui-btn layui-bg-blue layui-btn-radius" data-package-id="{{ d.packageId }}">去支付</button>
+                </div>
+            </div>
+        </div>
+    </script>
+    <script type="text/javascript" src="../Static/js/jquery.js"></script>
+    <script type="text/javascript" src="../Static/layui/layui.js"></script>
+    <script type="text/javascript" src="js/qrcode.js"></script>
+    <script type="text/javascript" src="js/confetti.browser.min.js"></script>
+    <script type="text/javascript" src="../Static/js/Global.js"></script>
+    <script type="text/javascript" src="js/Global.js"></script>
+    <script type="text/javascript" src="js/PayOrder.js"></script>
+    <script type="text/javascript" src="js/Subscribe.js"></script>
+</body>
+
+</html>

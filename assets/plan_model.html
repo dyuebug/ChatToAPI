@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>龙虾计划 - 模型广场</title>
+    <link rel="stylesheet" href="../Static/layui/css/layui.css">
+    <link rel="stylesheet" href="../Static/css/global.css">
+    <link rel="stylesheet" href="css/global.css">
+    <link rel="stylesheet" href="css/model.css">
+</head>
+<body>
+        <header class="header">
+        <div class="container flex justify-between items-center h-full">
+            <div class="flex items-center gap-2">
+                <a href="index.shtml" class="brand">
+                    <div class="brand-logo">
+                    <svg class="icon" viewBox="0 0 1024 1024" version="1.1" xmlns="http://www.w3.org/2000/svg"
+                        width="32" height="32">
+                        <path
+                            d="M422.5536 224.2048c27.648-9.0624 57.6-13.9264 89.4464-13.9264 40.448 0 77.824 7.8592 111.2832 22.144q58.368-48.128 96.512-27.8016a6.4 6.4 0 0 1-5.9904 11.3152q-29.2608-15.616-77.5424 22.4256c72.0896 35.456 124.0832 101.76 145.92 183.1424 10.5728-0.8704 22.8352-1.28 37.0176-1.28 51.2 0 51.2 51.2 51.2 64s-12.8 76.8-51.2 76.8c-9.5488 0-20.3776-2.4064-31.232-6.9632-17.8688 77.3888-78.6176 182.8864-186.368 221.952v66.5856h-51.2v-76.8c-12.8 12.8-64 12.8-76.8 0v76.8h-51.2v-66.56c-107.7504-39.0912-168.4992-144.5888-186.368-221.952-10.8544 4.5312-21.6832 6.912-31.232 6.912-38.4 0-51.2-64-51.2-76.8s0-64 51.2-64c14.1824 0 26.4448 0.4352 37.0176 1.3056 23.9872-89.344 84.3008-160.512 167.6544-192.64Q363.52 180.6848 335.8208 195.456a6.4 6.4 0 0 1-6.0416-11.3152q37.2992-19.8656 92.7744 40.064zM460.8 368.9984a38.4 38.4 0 1 1-76.8 0 38.4 38.4 0 0 1 76.8 0z m140.8 38.4a38.4 38.4 0 1 0 0-76.8 38.4 38.4 0 0 0 0 76.8z"
+                            fill="#FF5722"></path>
+                        <path
+                            d="M414.72 363.52a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z m179.2 0a12.8 12.8 0 1 0 25.6 0 12.8 12.8 0 0 0-25.6 0z"
+                            fill="#FFFFFF"></path>
+                    </svg>
+                </div>
+                <div class="brand-text">龙虾计划</div>
+                </a>
+            </div>
+
+            <div class="nav" id="desktopNavContainer">
+            </div>
+
+            <script type="text/html" id="desktopNavTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="nav-link" {{ item.id ? 'id="'+item.id+'"' : '' }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+
+            <div class="flex items-center gap-4">
+                <div class="hidden flex items-center gap-4" id="authBtns">
+                    <a class="btn btn-primary" href="login.shtml">登录</a>
+                </div>
+
+                <div class="flex items-center gap-4" id="userMenu">
+                    <div class="user-dropdown">
+                        <div class="flex items-center gap-2 cursor-pointer user-dropdown-toggle">
+                            <div class="t-sm font-bold user-name-text">用户xxx</div>
+                            <svg viewBox="0 0 24 24" width="16" height="16" fill="currentColor"><path d="M7 10l5 5 5-5z"/></svg>
+                        </div>
+                        <div class="user-dropdown-menu shadow-lg" id="userDropdownContainer">
+                        </div>
+                    </div>
+                </div>
+
+                <div class="nav-toggle" type="button" id="navToggle">
+                    <div></div><div></div><div></div>
+                </div>
+            </div>
+
+            <script type="text/html" id="userDropdownTpl">
+                {{# layui.each(d, function(index, item){ }}
+                <a href="{{ item.href }}" class="user-dropdown-item">{{ item.name }}</a>
+                {{# }); }}
+                <div class="user-dropdown-divider"></div>
+                <a href="/API/Web/User/DoLogout" class="user-dropdown-item text-danger">安全退出</a>
+            </script>
+
+            <script type="text/html" id="mobileNavTpl">
+                {{# layui.each(d.mainNav, function(index, item){ }}
+                <a href="{{ item.href }}" class="mobile-nav-link" {{ item.mobileId ? 'id="'+item.mobileId+'"' : (item.id ? 'id="'+item.id+'"' : '') }} {{ item.target ? 'target="'+item.target+'"' : '' }}>{{ item.name }}</a>
+                {{# }); }}
+            </script>
+        </div>
+    </header>
+    <div class="container main-container model-page-container">
+        <section class="hero">
+            <div class="eyebrow">MODEL MARKETPLACE</div>
+            <div class="hero-title">模型广场</div>
+            <div class="hero-subtitle">探索全球顶尖 AI 模型，一键接入您的应用</div>
+            <div class="hero-actions">
+                <a class="api-action" href="token.shtml">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="16 18 22 12 16 6"></polyline><polyline points="8 6 2 12 8 18"></polyline></svg>
+                    API 调用
+                </a>
+                <a class="chat-action" href="chat.shtml">
+                    <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path></svg>
+                    在线对话
+                </a>
+            </div>
+            <label class="search" for="modelSearch">
+                <span>⌕</span>
+                <input id="modelSearch" type="search" placeholder="搜索模型名称、供应商或类型..." autocomplete="off">
+            </label>
+        </section>
+
+        <div class="catalog-layout">
+            <aside class="filters">
+                <div class="filter-head">
+                    <div>
+                        <div class="filter-head-title">筛选条件</div>
+                        <div class="filter-head-desc">保留供应商、收费标准与收费组</div>
+                    </div>
+                    <button id="resetBtn" type="button">重置</button>
+                </div>
+
+                <div class="filter-block">
+                    <div class="filter-title">收费组</div>
+                    <div class="group-list" id="groupFilterList"></div>
+                </div>
+
+                <div class="filter-block">
+                    <div class="filter-title">供应商</div>
+                    <div class="group-list" id="providerFilterList"></div>
+                </div>
+
+                <div class="filter-block">
+                    <div class="filter-title">收费标准</div>
+                    <div class="group-list" id="billingFilterList"></div>
+                </div>
+
+                <div class="rate-note">
+                    <span>i</span>
+                    <div><b>关于收费组</b><br>左侧收费组用于聚合展示模型系列，右侧详情抽屉会同步展示对应倍率与收费明细。</div>
+                </div>
+            </aside>
+
+            <section class="results">
+                <div class="toolbar">
+                    <div>
+                        <strong id="resultCount">0</strong>
+                        <span> 个模型</span>
+                        <small id="activeFilter">全部模型</small>
+                    </div>
+                    <div class="tools">
+                        <select id="sortSelect" aria-label="模型排序">
+                            <option value="name">名称排序</option>
+                            <option value="input-asc">输入价从低到高</option>
+                            <option value="output-asc">输出价从低到高</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div class="model-grid" id="modelGrid"></div>
+                <div class="empty" id="emptyState">
+                    <span>⌕</span>
+                    <div class="empty-title">没有找到相关模型</div>
+                    <div class="empty-desc">请尝试更换关键词或重置筛选条件</div>
+                    <button id="emptyReset" type="button">清除筛选</button>
+                </div>
+            </section>
+        </div>
+    </div>
+        <div class="footer">
+        <div class="container">
+            <div class="flex flex-wrap justify-between items-center gap-5">
+                <div class="footer-left">
+                    <div class="brand-logo flex items-center gap-2 mb-2">
+                        <div class="font-black text-primary footer-brand-title">龙虾计划</div>
+                    </div>
+                    <div class="t-sm text-secondary">每个人都能轻松接入的API站</div>
+                </div>
+                <div class="footer-right text-right">
+                    <div class="t-sm text-secondary mb-1">&copy; 2024-2026 龙虾计划 . All Rights Reserved.</div>
+                    <div class="t-sm text-secondary">
+                        <span class="footer-block">Designed by Bilibili Up主: 还在路上的小光 <span class="badge badge-bilibili">Bilibili</span></span>
+                        <span class="mx-4 footer-sep">|</span>
+                        <span class="footer-block">公众号: 计划引擎</span>
+                        <span class="mx-4">|</span>
+                        <span class="footer-block">官方QQ讨论群: 1044559389</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="mobile-nav-backdrop" id="mobileNavBackdrop" aria-hidden="true">
+        <div class="mobile-nav" id="mobileNav">
+            <div class="mobile-nav-head">
+                <div class="mobile-nav-title">菜单</div>
+                <div class="mobile-nav-close" type="button" id="mobileNavClose">
+                    <svg width="22" height="22" viewBox="0 0 24 24" fill="currentColor">
+                        <path
+                            d="M19 6.41L17.59 5 12 10.59 6.41 5 5 6.41 10.59 12 5 17.59 6.41 19 12 13.41 17.59 19 19 17.59 13.41 12z" />
+                    </svg>
+                </div>
+            </div>
+            <div class="mobile-nav-links" id="mobileNavContainer">
+            </div>
+        </div>
+    </div>
+
+    <script type="text/html" id="filterOptionTpl">
+        {{# layui.each(d.items, function(index, item){ }}
+        <button class="group {{ item.active ? 'active' : '' }}" type="button"
+            data-filter-type="{{ d.filterType }}"
+            data-filter-value="{{ item.value }}">
+            <span>{{ item.label }}</span>
+            <em>{{ item.count }}</em>
+        </button>
+        {{# }); }}
+    </script>
+
+    <script type="text/html" id="modelCardTpl">
+        {{# layui.each(d, function(index, model){ }}
+        {{# 
+            var providerClass = "";
+            if (model.provider === "OpenAI") providerClass = "openai";
+            else if (model.provider === "Anthropic") providerClass = "claude";
+            else if (model.provider === "Google") providerClass = "gemini";
+            else if (model.provider === "xAI") providerClass = "grok";
+            else providerClass = model.providerKey;
+        }}
+        <article class="model-card" data-model="{{ model.modelName }}">
+            <div class="card-main">
+                <span class="model-icon model-provider-icon--{{ providerClass }}">
+                    <span class="model-icon-surface">
+                        {{- model.icon }}
+                    </span>
+                </span>
+                <div class="model-info">
+                    <div class="model-name">
+                        <div class="model-name-text" title="{{ model.modelName }}">{{ model.modelName }}</div>
+                    </div>
+                </div>
+                <div class="card-actions">
+                    <button class="details" type="button" data-action="details" data-model="{{ model.modelName }}">详情 <i>›</i></button>
+                    <button class="copy" type="button" data-action="copy" data-model="{{ model.modelName }}" title="复制模型名称" aria-label="复制 {{ model.modelName }}">
+                        <span class="copy-glyph"></span>
+                    </button>
+                </div>
+            </div>
+            
+            <div class="inline-prices">
+                {{# if(model.type === 'fixed'){ }}
+                <div class="full-width">
+                    <span>模型价格</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayNumber !== undefined && model.displayNumber !== null ? model.displayNumber : 0 }}</strong><span class="unit"> / 次</span></span>
+                </div>
+                {{# } else { }}
+                <div>
+                    <span>输入</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayInputPrice !== undefined && model.displayInputPrice !== null ? model.displayInputPrice : 0 }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                <div>
+                    <span>补全</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayOutPrice !== undefined && model.displayOutPrice !== null ? model.displayOutPrice : 0 }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                {{# 
+                    var cacheIn = model.displayCacheInputPrice !== undefined && model.displayCacheInputPrice !== null ? parseFloat(model.displayCacheInputPrice) : 0;
+                    var cacheOut = model.displayCacheOutPrice !== undefined && model.displayCacheOutPrice !== null ? parseFloat(model.displayCacheOutPrice) : 0;
+                    var showCacheIn = cacheIn > 0;
+                    var showCacheOut = cacheOut > 0;
+                }}
+                {{# if(showCacheIn && showCacheOut){ }}
+                <div>
+                    <span>读取</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayCacheOutPrice }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                <div>
+                    <span>写入</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayCacheInputPrice }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                {{# } else if(showCacheOut){ }}
+                <div class="full-width">
+                    <span>读取</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayCacheOutPrice }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                {{# } else if(showCacheIn){ }}
+                <div class="full-width">
+                    <span>写入</span>
+                    <span><span class="currency">$</span><strong>{{ model.displayCacheInputPrice }}</strong><span class="unit"> / 1M Tokens</span></span>
+                </div>
+                {{# } }}
+                {{# } }}
+            </div>
+
+            <div class="card-bottom">
+                <div class="card-description">
+                    <div class="description">{{ model.desc || '暂无模型描述' }}</div>
+                    <span class="billing">{{ model.type === 'fixed' ? '按次计费' : '按量计费' }}</span>
+                </div>
+                <div class="health">
+                    <div>
+                        <span>供应商</span>
+                        <b>{{ model.provider }}</b>
+                    </div>
+                    <div>
+                        <span>状态</span>
+                        <i class="status-bars"><em></em><em></em><em></em></i>
+                    </div>
+                </div>
+            </div>
+
+            <div class="detail-panel">
+                {{# if(model.type === 'fixed'){ }}
+                <div><span>计费类型</span><b>按次收费</b></div>
+                <div><span>单次价格</span><b>{{ model.number !== undefined && model.number !== null ? model.number : 0 }}</b></div>
+                <div><span>收费组</span><b>{{ model.groupName }}</b></div>
+                {{# } else { }}
+                <div><span>输入</span><b>{{ model.inputPrice !== undefined && model.inputPrice !== null ? model.inputPrice : 0 }}</b></div>
+                <div><span>补全</span><b>{{ model.outPrice !== undefined && model.outPrice !== null ? model.outPrice : 0 }}</b></div>
+                <div><span>收费组</span><b>{{ model.groupName }}</b></div>
+                {{# if(showCacheIn || showCacheOut){ }}
+                <div><span>缓存</span><b>{{ showCacheIn ? '读取 ' + cacheIn : '' }}{{ showCacheIn && showCacheOut ? ' / ' : '' }}{{ showCacheOut ? '写入 ' + cacheOut : '' }}</b></div>
+                {{# } }}
+                {{# } }}
+            </div>
+        </article>
+        {{# }); }}
+        {{# if(d.length === 0){ }}
+        <div class="model-empty-placeholder">没有找到匹配的模型</div>
+        {{# } }}
+    </script>
+
+    <div class="drawer-layer" id="drawerLayer" aria-hidden="true">
+        <button class="drawer-backdrop" id="drawerBackdrop" aria-label="关闭详情"></button>
+        <aside class="model-drawer" id="modelDrawer" aria-label="模型详情">
+            <header class="drawer-head">
+                <div class="drawer-identity">
+                    <div class="drawer-logo" id="drawerLogo"></div>
+                    <div>
+                        <div class="drawer-title-row">
+                            <div class="drawer-name" id="drawerName"></div>
+                            <button class="drawer-copy" id="drawerCopy" title="复制模型名称" type="button"><span class="copy-glyph"></span></button>
+                        </div>
+                        <div class="drawer-meta"><span id="drawerProvider"></span><b id="drawerBillingType">按量计费</b></div>
+                    </div>
+                </div>
+                <div class="drawer-desc" id="drawerDesc" style="margin-top: 12px; font-size: 13px; color: var(--text-secondary); line-height: 1.5; display: none;"></div>
+                <button class="drawer-close" id="drawerClose" aria-label="关闭" type="button">×</button>
+            </header>
+            <div class="drawer-body">
+                <section class="drawer-section">
+                    <div class="drawer-section-title">官方定价</div>
+                    <div class="inline-prices" id="drawerPricesToken" style="display: none;">
+                        <div>
+                            <span>输入</span>
+                            <span><span class="currency">$</span><strong id="drawerInput"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div>
+                            <span>补全</span>
+                            <span><span class="currency">$</span><strong id="drawerOutput"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div id="drawerReadContainer">
+                            <span>读取</span>
+                            <span><span class="currency">$</span><strong id="drawerRead"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                        <div id="drawerWriteContainer">
+                            <span>写入</span>
+                            <span><span class="currency">$</span><strong id="drawerWrite"></strong><span class="unit"> / 1M Tokens</span></span>
+                        </div>
+                    </div>
+                    <div class="inline-prices" id="drawerPricesFixed" style="display: none;">
+                        <div class="full-width">
+                            <span>模型价格</span>
+                            <span><span class="currency">$</span><strong id="drawerFixedPrice"></strong><span class="unit"> / 次</span></span>
+                        </div>
+                    </div>
+                </section>
+                <section class="drawer-section">
+                    <div class="drawer-section-title">分组价格</div>
+                    <div id="drawerGroupsContainer"></div>
+                </section>
+                <section class="drawer-section model-meta">
+                    <div class="drawer-section-title">模型信息</div>
+                    <dl>
+                        <div><dt>模型名称</dt><dd id="metaName"></dd></div>
+                        <div><dt>供应商</dt><dd id="metaProvider"></dd></div>
+                        <div><dt>计费类型</dt><dd id="metaBilling"></dd></div>
+                        <div><dt>服务状态</dt><dd class="online">● 正常</dd></div>
+                    </dl>
+                </section>
+            </div>
+        </aside>
+    </div>
+    <div class="toast" id="toast">模型名称已复制</div>
+
+    <script type="text/html" id="drawerGroupTpl">
+        {{# layui.each(d.groups, function(index, group){ }}
+        {{# 
+            var inputPrice = d.model.inputPrice || 0;
+            var outPrice = d.model.outPrice || 0;
+            var cacheInputPrice = d.model.cacheInputPrice || 0;
+            var cacheOutPrice = d.model.cacheOutPrice || 0;
+            var number = d.model.number || 0;
+            
+            var calcInput = parseFloat((inputPrice * (group.ratio || group.inputRatio || 1)).toFixed(6)).toString();
+            var calcOut = parseFloat((outPrice * (group.ratio || group.outRatio || 1)).toFixed(6)).toString();
+            var calcCacheIn = parseFloat((cacheInputPrice * (group.ratio || group.cacheInputRatio || 1)).toFixed(6)).toString();
+            var calcCacheOut = parseFloat((cacheOutPrice * (group.ratio || group.cacheOutRatio || 1)).toFixed(6)).toString();
+            var calcNumber = parseFloat((number * (group.ratio || group.inputRatio || 1)).toFixed(6)).toString();
+            
+            var ratioDisplay = group.ratio ? group.ratio : (group.inputRatio || 1);
+        }}
+        <div class="route-card" style="margin-bottom: 12px;">
+            <div class="route-head">
+                <span class="route-name model-provider-text--{{ d.model.providerKey || 'default' }}">{{ group.name }}</span>
+                <span class="count" style="font-size: 12px; color: var(--text-secondary); background: transparent; padding: 0; font-weight: normal; font-family: Consolas, monospace;">×{{ ratioDisplay }}</span>
+            </div>
+            <div class="price-table">
+                <div class="table-head">
+                    <span style="text-align: left;">档位</span>
+                    {{# if(d.model.billingType === 'fixed'){ }}
+                    <span style="text-align: center;">单次价格</span>
+                    <span></span><span></span><span></span>
+                    {{# } else { }}
+                    <span style="text-align: center;">输入</span>
+                    <span style="text-align: center;">补全</span>
+                    <span style="text-align: center;">读取</span>
+                    <span style="text-align: center;">写入</span>
+                    {{# } }}
+                </div>
+                <div class="table-row">
+                    <span style="text-align: left;">标准上下文</span>
+                    {{# if(d.model.billingType === 'fixed'){ }}
+                    <b style="text-align: center;">${{ calcNumber }}<span class="unit"> / 次</span></b>
+                    <span></span><span></span><span></span>
+                    {{# } else { }}
+                    <b style="text-align: center;">${{ calcInput }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcOut }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcCacheIn }}<span class="unit"> / 1M Tokens</span></b>
+                    <b style="text-align: center;">${{ calcCacheOut }}<span class="unit"> / 1M Tokens</span></b>
+                    {{# } }}
+                </div>
+            </div>
+        </div>
+        {{# }); }}
+    </script>
+
+    <script src="../Static/js/jquery.min.js"></script>
+    <script src="../Static/layui/layui.js"></script>
+    <script src="../Static/js/global.js"></script>
+    <script src="js/global.js"></script>
+    <script src="js/model.js"></script>
+</body>
+</html>

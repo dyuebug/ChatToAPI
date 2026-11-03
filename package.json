@@ -1,0 +1,26 @@
+{
+  "name": "chatopens-to-api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Expose chatopens.ai Sorux car (ChatGPT conduit) as an OpenAI-compatible local API",
+  "scripts": {
+    "start": "node src/index.js",
+    "service:start": "chattoapi.bat start",
+    "service:menu": "chattoapi.bat",
+    "service:stop": "chattoapi.bat stop",
+    "service:restart": "chattoapi.bat restart",
+    "service:status": "chattoapi.bat status",
+    "service:monitor": "chattoapi.bat monitor",
+    "login": "node scripts/login.mjs",
+    "key:rotate": "node scripts/rotate-key.mjs",
+    "magpie:register": "node scripts/magpie-register.mjs",
+    "test": "node test/mock.test.js && node test/login-code.test.js && node test/upstream-error.test.js"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "dependencies": {
+    "playwright-core": "^1.63.0"
+  }
+}
