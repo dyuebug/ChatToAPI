@@ -2,6 +2,10 @@
   "host": "127.0.0.1",
   "port": 8787,
   "logLevel": "info",
+  "ui": {
+    "enabled": true,
+    "sessionTtlMs": 28800000
+  },
   "auth": {
     "requireApiKey": true,
     "dataDir": "data",
@@ -26,6 +30,16 @@
     "conversationFallbackPath": "/backend-api/conversation",
     "requestTimeoutMs": 120000,
     "car": "Sorux",
+    "stations": {
+      "Sorux": { "car": "Sorux" },
+      "OneOpenAI": {
+        "car": "OneOpenAI",
+        "thinkingEffort": "min",
+        "exposeReasoning": false,
+        "autoFallback": true,
+        "fallbackModels": ["gpt-6.1-terra-wm", "gpt-6-sol-wm", "gpt-5.6-sol-wm"]
+      }
+    },
     "credential": {
       "cookie": "PASTE_YOUR_COOKIE_HEADER_STRING_HERE",
       "bearerToken": "PASTE_BEARER_TOKEN_HERE"

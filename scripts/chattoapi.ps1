@@ -1,14 +1,17 @@
-[CmdletBinding()]
+﻿[CmdletBinding()]
 param(
     [Parameter(Position = 0)]
-    [ValidateSet('menu', 'start', 'stop', 'restart', 'status', 'monitor', 'adopt')]
+    [ValidateSet('menu', 'start', 'stop', 'restart', 'status', 'monitor', 'console', 'adopt', 'login-sorux', 'login-work')]
     [string]$Command = 'menu',
 
     [ValidateRange(1, 3600)]
     [int]$IntervalSeconds = 5,
 
     [ValidateRange(5, 300)]
-    [int]$StartupTimeoutSeconds = 30
+    [int]$StartupTimeoutSeconds = 30,
+
+    [ValidateRange(30, 3600)]
+    [int]$LoginTimeoutSeconds = 600
 )
 
 $ErrorActionPreference = 'Stop'
@@ -20,6 +23,7 @@ $StdErrLog = Join-Path $RunDirectory 'stderr.log'
 $LauncherLog = Join-Path $RunDirectory 'launcher.log'
 $LauncherErrLog = Join-Path $RunDirectory 'launcher-error.log'
 $PidFile = Join-Path $RunDirectory 'child.pid'
+$UiTokenFile = Join-Path $RunDirectory 'ui-token'
 
 function Ensure-RunDirectory {
     if (-not (Test-Path -LiteralPath $RunDirectory)) {
@@ -87,6 +91,24 @@ function Remove-State {
     }
 }
 
+function Remove-UiToken {
+    if (Test-Path -LiteralPath $UiTokenFile) {
+        Remove-Item -LiteralPath $UiTokenFile -Force -ErrorAction SilentlyContinue
+    }
+}
+
+function Get-UiUrl([string]$BaseUrl) {
+    $token = if ($env:CHATTOAPI_UI_TOKEN) {
+        [string]$env:CHATTOAPI_UI_TOKEN
+    } elseif (Test-Path -LiteralPath $UiTokenFile) {
+        try { (Get-Content -LiteralPath $UiTokenFile -Raw -ErrorAction Stop).Trim() } catch { $null }
+    } else {
+        $null
+    }
+    if (-not $token) { return $null }
+    return "$BaseUrl/ui?t=$token"
+}
+
 function Show-Status {
     $state = Get-State
     $endpoint = if ($state -and $state.url) {
@@ -102,6 +124,7 @@ function Show-Status {
         Host = $endpoint.Host
         Port = $endpoint.Port
         Url = $endpoint.Url
+        UiUrl = if ($running -and $healthy) { Get-UiUrl $endpoint.Url } else { $null }
         StartedAt = if ($state) { $state.startedAt } else { $null }
         StateFile = $StateFile
         StdOutLog = $StdOutLog
@@ -148,6 +171,13 @@ function Adopt-ExistingService {
     Write-Host "Existing Node service adopted (PID $processId): $($endpoint.Url)"
 }
 
+function Get-NodePath {
+    $node = Get-Command node.exe -ErrorAction SilentlyContinue
+    if (-not $node) { $node = Get-Command node -ErrorAction SilentlyContinue }
+    if (-not $node) { throw 'Node.js was not found on PATH. Install Node.js 20+ first.' }
+    return $node.Source
+}
+
 function Start-ChatToApiService([switch]$ExitAfterStart) {
     Ensure-RunDirectory
     $existingState = Get-State
@@ -162,24 +192,26 @@ function Start-ChatToApiService([switch]$ExitAfterStart) {
     }
     if ($existingState) { Remove-State }
 
-    $node = Get-Command node.exe -ErrorAction SilentlyContinue
-    if (-not $node) { $node = Get-Command node -ErrorAction SilentlyContinue }
-    if (-not $node) { throw 'Node.js was not found on PATH. Install Node.js 20+ first.' }
+    $nodePath = Get-NodePath
     $endpoint = Get-Endpoint
     if (Test-Health $endpoint.Url) {
         throw "The endpoint $($endpoint.Url) is already responding. Set CHATTOAPI_PORT to another port or stop the existing service first."
     }
     Remove-Item -LiteralPath $PidFile -Force -ErrorAction SilentlyContinue
+    # 新实例启动时会写入新令牌；旧文件可能在 ui.enabled=false 时残留。
+    Remove-UiToken
     $daemonPath = Join-Path $ProjectRoot 'scripts/daemon.mjs'
-    $launchCommand = 'start "" /b "' + $node.Source + '" "' + $daemonPath + '" "' + $ProjectRoot + '" "' + $StdOutLog + '" "' + $StdErrLog + '" "' + $PidFile + '"'
-    $launcherInfo = New-Object System.Diagnostics.ProcessStartInfo
-    $launcherInfo.FileName = $env:ComSpec
-    $launcherInfo.Arguments = '/d /c ' + $launchCommand
-    $launcherInfo.WorkingDirectory = $ProjectRoot
-    $launcherInfo.CreateNoWindow = $true
-    $launcherInfo.UseShellExecute = $false
-    $launcherProcess = [System.Diagnostics.Process]::Start($launcherInfo)
-    $launcherProcess.Dispose()
+    # 用 Start-Process 而不是 cmd start /b：后台进程不再继承调用方的 stdout 句柄，
+    # 否则 `npm run service:start` 在管道/Git Bash 下会一直等待句柄关闭。
+    $daemonArguments = @(
+        ('"' + $daemonPath + '"'),
+        ('"' + $ProjectRoot + '"'),
+        ('"' + $StdOutLog + '"'),
+        ('"' + $StdErrLog + '"'),
+        ('"' + $PidFile + '"')
+    ) -join ' '
+    Start-Process -FilePath $nodePath -ArgumentList $daemonArguments `
+        -WorkingDirectory $ProjectRoot -WindowStyle Hidden | Out-Null
     Start-Sleep -Milliseconds 500
     if (-not (Test-Path -LiteralPath $PidFile)) {
         throw "Could not start the detached Node process. Check $StdErrLog."
@@ -208,6 +240,8 @@ function Start-ChatToApiService([switch]$ExitAfterStart) {
             $state | ConvertTo-Json | Set-Content -LiteralPath $StateFile -Encoding UTF8
             Write-Host "ChatToAPI started (PID $processId): $($endpoint.Url)"
             Write-Host "Logs: $StdOutLog"
+            $uiUrl = Get-UiUrl $endpoint.Url
+            if ($uiUrl) { Write-Host "Local console: $uiUrl" }
             if ($ExitAfterStart) { exit 0 }
             return
         }
@@ -221,6 +255,7 @@ function Stop-ChatToApiService {
     $process = Get-ManagedProcess $state
     if (-not $process) {
         if ($state) { Remove-State }
+        Remove-UiToken
         Write-Host 'ChatToAPI is not running.'
         return
     }
@@ -231,7 +266,31 @@ function Stop-ChatToApiService {
         Stop-Process -Id $processId -Force -ErrorAction Stop
     }
     Remove-State
+    Remove-UiToken
     Write-Host "ChatToAPI stopped (PID $processId)."
+}
+
+function Open-WebConsole {
+    $status = Show-Status
+    $endpoint = Get-Endpoint
+    # 状态文件可能丢失，或服务由 npm start 直接启动；以 /health 为准回退。
+    $healthy = $status.Healthy -or (Test-Health $endpoint.Url)
+    if (-not $healthy) {
+        Write-Host 'ChatToAPI is not running. Start it first.'
+        return
+    }
+    $uiUrl = if ($status.UiUrl) { $status.UiUrl } else { Get-UiUrl $endpoint.Url }
+    if (-not $uiUrl) {
+        Write-Host 'The local console is disabled or its startup token is unavailable. Ensure ui.enabled is true and restart the service so it writes .chattoapi-run/ui-token.'
+        return
+    }
+    Write-Host "Local console: $uiUrl"
+    Write-Host 'The token is valid until the service stops.'
+    try {
+        Start-Process $uiUrl | Out-Null
+    } catch {
+        Write-Host 'Could not open the default browser; copy the URL above.'
+    }
 }
 
 function Monitor-Service {
@@ -245,6 +304,45 @@ function Monitor-Service {
     }
 }
 
+function Wait-StationLogin([string]$BaseUrl, [string]$StationId, [int]$TimeoutSeconds) {
+    $deadline = (Get-Date).AddSeconds($TimeoutSeconds)
+    $lastNotice = Get-Date
+    while ((Get-Date) -lt $deadline) {
+        Start-Sleep -Seconds 2
+        try { $status = Invoke-RestMethod -Uri "$BaseUrl/auth/status" -TimeoutSec 5 } catch { continue }
+        $station = if ($status.stations) { $status.stations.$StationId } else { $null }
+        if ($station -and $station.loggedIn) {
+            Write-Host "$StationId login captured and encrypted."
+            return
+        }
+        if (((Get-Date) - $lastNotice).TotalSeconds -ge 30) {
+            Write-Host "Waiting for $StationId login: sign in, open the AI entry, and send one message."
+            $lastNotice = Get-Date
+        }
+    }
+    throw "$StationId login timed out after $TimeoutSeconds seconds."
+}
+
+function Invoke-StationLogin([string]$StationId, [int]$TimeoutSeconds) {
+    $endpoint = Get-Endpoint
+    # 服务在运行时把登录交给服务进程，捕获结果会立即反映在该实例的 /auth/status；
+    # 未运行时退化为独立登录助手。
+    if (Test-Health $endpoint.Url) {
+        $response = Invoke-RestMethod -Method Post -Uri "$($endpoint.Url)/auth/login?station=$StationId" `
+            -ContentType 'application/json' -Body '{}' -TimeoutSec 20
+        if ($response.stationId -and $response.stationId -ne $StationId) {
+            throw "The open login window belongs to $($response.stationId). Close it before logging in to $StationId."
+        }
+        if ($response.instruction) { Write-Host $response.instruction }
+        Wait-StationLogin $endpoint.Url $StationId $TimeoutSeconds
+        return
+    }
+    Write-Host 'ChatToAPI is not running; using the standalone login helper.'
+    $nodePath = Get-NodePath
+    & $nodePath (Join-Path $ProjectRoot 'scripts/login.mjs') '--station' $StationId
+    if ($LASTEXITCODE -ne 0) { throw "Login for $StationId failed (exit code $LASTEXITCODE)." }
+}
+
 function Show-InteractiveMenu {
     $done = $false
     while (-not $done) {
@@ -256,8 +354,11 @@ function Show-InteractiveMenu {
         Write-Host '4. Show status'
         Write-Host '5. Monitor service'
         Write-Host '6. Adopt an existing service on the configured port'
-        Write-Host '7. Exit'
-        $selection = (Read-Host 'Select an option (1-7)').Trim()
+        Write-Host '7. Open the local web console'
+        Write-Host '8. Log in to Sorux'
+        Write-Host '9. Log in to ChatGPT-Work'
+        Write-Host '10. Exit'
+        $selection = (Read-Host 'Select an option (1-10)').Trim()
         try {
             switch ($selection) {
                 '1' { Start-ChatToApiService; Read-Host 'Press Enter to return to the menu' | Out-Null }
@@ -270,8 +371,11 @@ function Show-InteractiveMenu {
                     if ($confirmation -ceq 'ADOPT') { Adopt-ExistingService } else { Write-Host 'Adoption cancelled.' }
                     Read-Host 'Press Enter to return to the menu' | Out-Null
                 }
-                '7' { $done = $true }
-                default { Write-Host 'Invalid option. Please choose 1-7.' }
+                '7' { Open-WebConsole; Read-Host 'Press Enter to return to the menu' | Out-Null }
+                '8' { Invoke-StationLogin 'Sorux' $LoginTimeoutSeconds; Read-Host 'Press Enter to return to the menu' | Out-Null }
+                '9' { Invoke-StationLogin 'OneOpenAI' $LoginTimeoutSeconds; Read-Host 'Press Enter to return to the menu' | Out-Null }
+                '10' { $done = $true }
+                default { Write-Host 'Invalid option. Please choose 1-10.' }
             }
         } catch {
             Write-Host "Operation failed: $($_.Exception.Message)"
@@ -289,7 +393,10 @@ try {
         'restart' { Stop-ChatToApiService; Start-ChatToApiService -ExitAfterStart }
         'status' { Show-Status | Format-List }
         'monitor' { Monitor-Service }
+        'console' { Open-WebConsole }
         'adopt' { Adopt-ExistingService }
+        'login-sorux' { Invoke-StationLogin 'Sorux' $LoginTimeoutSeconds }
+        'login-work' { Invoke-StationLogin 'OneOpenAI' $LoginTimeoutSeconds }
     }
 } finally {
     Pop-Location

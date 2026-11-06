@@ -6,16 +6,21 @@
   "description": "Expose chatopens.ai Sorux car (ChatGPT conduit) as an OpenAI-compatible local API",
   "scripts": {
     "start": "node src/index.js",
-    "service:start": "chattoapi.bat start",
-    "service:menu": "chattoapi.bat",
-    "service:stop": "chattoapi.bat stop",
-    "service:restart": "chattoapi.bat restart",
-    "service:status": "chattoapi.bat status",
-    "service:monitor": "chattoapi.bat monitor",
+    "service:start": "node scripts/service.mjs start",
+    "service:menu": "node scripts/service.mjs menu",
+    "service:stop": "node scripts/service.mjs stop",
+    "service:restart": "node scripts/service.mjs restart",
+    "service:status": "node scripts/service.mjs status",
+    "service:monitor": "node scripts/service.mjs monitor",
+    "service:console": "node scripts/service.mjs console",
+    "service:adopt": "node scripts/service.mjs adopt",
     "login": "node scripts/login.mjs",
+    "login:sorux": "node scripts/login.mjs --station Sorux",
+    "login:work": "node scripts/login.mjs --station OneOpenAI",
+    "smoke": "node scripts/smoke.mjs",
     "key:rotate": "node scripts/rotate-key.mjs",
     "magpie:register": "node scripts/magpie-register.mjs",
-    "test": "node test/mock.test.js && node test/login-code.test.js && node test/upstream-error.test.js"
+    "test": "node test/ui-lib.test.js && node test/ui.test.js && node test/station-routing.test.js && node test/credential-v2.test.js && node test/work-reducer.test.js && node test/work-adapter.test.js && node test/mock.test.js && node test/login-code.test.js && node test/upstream-error.test.js"
   },
   "engines": {
     "node": ">=20"

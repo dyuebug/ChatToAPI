@@ -40,13 +40,17 @@ Windows 下可以让项目在后台运行，并通过同一个脚本完成停止
 ```powershell
 npm run service:start       # 后台启动，命令立即返回
 npm run service:status
-npm run service:monitor   # 按 Ctrl+C 退出监控
+npm run service:monitor     # 按 Ctrl+C 退出监控
 npm run service:stop
+npm run service:restart
+npm run service:console     # 打开本地 Web 控制台
+npm run service:adopt       # 接管配置端口上已运行的实例
 ```
 
-还提供 `npm run service:restart`。脚本只管理自己记录的 Node 进程，状态文件和
-日志位于 `.chattoapi-run/`：`process.json`、`stdout.log`、`stderr.log`。如果直接
-调用脚本，也可以使用：
+`npm run service:*` 通过 `node scripts/service.mjs` 调用 PowerShell，因此在
+`cmd.exe`、PowerShell 和 Git Bash 中行为一致；脚本只管理自己记录的 Node 进程，
+状态文件和日志位于 `.chattoapi-run/`：`process.json`、`stdout.log`、`stderr.log`。
+如果直接调用脚本，也可以使用：
 
 ```powershell
 powershell -ExecutionPolicy Bypass -File scripts/chattoapi.ps1 status
@@ -63,6 +67,7 @@ chattoapi.bat start
 chattoapi.bat status
 chattoapi.bat monitor
 chattoapi.bat stop
+chattoapi.bat console      # 打开本地 Web 控制台
 
 # 明确接管配置端口上已运行的旧实例
 chattoapi.bat adopt
@@ -77,8 +82,14 @@ chattoapi.bat adopt
 4. Show status
 5. Monitor service
 6. Adopt an existing service on the configured port
-7. Exit
+7. Open the local web console
+8. Log in to Sorux
+9. Log in to ChatGPT-Work
+10. Exit
 ```
+
+菜单项 8 / 9 会调用运行中服务的登录接口，并等待该站点捕获完成；服务未运行时
+自动改用独立登录助手 `scripts/login.mjs`。
 
 如果选择 `1` 启动时提示端口已被占用，先选择 `6`。程序会要求输入大写 `ADOPT`，
 确认后才会记录该端口对应的 Node PID。接管成功后，状态、监控和停止操作都可以管理
@@ -112,6 +123,39 @@ $env:CHATTOAPI_BROWSER_PATH = 'C:/Program Files/Google/Chrome/Application/chrome
 npm start
 ```
 
+### 3.2 本地 Web 控制台
+
+服务启动后，终端会打印一个带启动令牌的地址：
+
+```text
+本地控制台: http://127.0.0.1:8787/ui?t=<启动令牌>（令牌只显示一次）
+```
+
+在浏览器中打开该地址即可进入控制台。令牌只用于首次换取 `HttpOnly` 会话 Cookie，
+随后地址栏会回到 `/ui`；服务重启后令牌会重新生成，旧地址立即失效。
+
+后台运行时终端不可见，可用以下任一方式获取地址：
+
+```powershell
+npm run service:status      # 输出中包含 UiUrl
+chattoapi.bat console       # 直接读取令牌并用默认浏览器打开
+```
+
+控制台提供：
+
+- 服务与上游登录状态、各站点（Sorux / ChatGPT-Work）凭据状态、最近捕获流量（已脱敏）自动刷新。
+- 打开登录窗口、强制重新登录、提交动态码；登录卡片可选择目标站点。
+- 轮换 API Key，或粘贴已有 Key 验证后用于对话测试。
+- 流式对话测试：可随时停止并重试上一条消息；Work 站点会显示工具活动时间线，勾选“思考摘要”后显示上游思考摘要。
+
+安全注意：
+
+- 控制台只接受回环地址访问，不要通过端口转发把 `/ui` 暴露给其他机器。
+- 启动令牌等同于本机控制台登录凭证，不要粘贴到聊天、工单或日志中。
+- API Key 只保存在当前页面的内存中，不写入浏览器存储；页面刷新后需要重新粘贴或轮换。
+- 设置 `ui.enabled: false` 可关闭控制台；`CHATTOAPI_UI_TOKEN` 可覆盖启动令牌；
+  `ui.sessionTtlMs` 控制会话有效期，默认 8 小时。
+
 ## 4. 登录和凭据捕获
 
 ### 4.1 启动登录
@@ -125,23 +169,40 @@ http://127.0.0.1:8787/auth/login
 也可以运行独立登录助手：
 
 ```powershell
-npm run login
+npm run login                          # 登录 Sorux 站
+npm run login:sorux                    # 同上
+npm run login:work                     # 登录 ChatGPT-Work 站
+npm run login -- --station OneOpenAI   # 等价写法
 ```
+
+也可以带站点参数访问本机接口：
+
+```text
+http://127.0.0.1:8787/auth/login?station=OneOpenAI
+```
+
+两个站点使用独立凭据与独立浏览器 Profile（ChatGPT-Work 使用
+`${auth.profileDir}-OneOpenAI`），可以分别登录，互不覆盖。
 
 程序会打开一个持久化浏览器窗口。首次使用时，按上游网站要求完成扫码或
 动态码登录。
+
+如果本地已经保存了上游凭据，登录窗口会复用持久化 Profile 并直接打开站点列表页，
+这是正常行为；控制台的「已登录」也只表示本地已有加密凭据。凭据是否仍被上游接受，
+以下一次真实对话为准：上游返回 401 时服务会自动清除失效凭据，重新登录即可。
 
 ### 4.2 完成一次真实对话
 
 登录成功后，必须进入实际 AI 对话页面并发送一条消息。推荐流程：
 
-1. 在站点列表选择“全模型-镜像站”或 Sorux 入口。
+1. 在站点列表选择“全模型-镜像站”、Sorux 或 ChatGPT-Work（`OneOpenAI`）入口。
 2. 等待对话页面完全加载。
 3. 发送一条简单测试消息，例如 `请仅回复 OK`。
 4. 等待上游响应完成。
 
 仅停留在登录页或“选车”列表页，通常不会产生最终对话请求，程序也就无法
-完整捕获协议头。
+完整捕获协议头。ChatGPT-Work 站首次请求还会建立该站独立的会话 Cookie，
+因此必须在该站内实际发起一次对话。
 
 ### 4.3 查看登录状态
 
@@ -151,8 +212,10 @@ Invoke-WebRequest http://127.0.0.1:8787/auth/status
 
 重点字段：
 
-- `loggedIn`：是否存在有效的加密上游凭据。
-- `needsLogin`：是否需要重新登录。
+- `loggedIn`：当前 `activeStation` 是否存在有效的加密上游凭据。
+- `activeStation`：当前默认站点（`Sorux` 或 `OneOpenAI`），由最近一次捕获更新。
+- `stations`：按站点分别返回 `loggedIn`、`cookieCount`、`capturedAt`、`tokenExpired`、`loginInProgress`，不含任何凭据内容。
+- `needsLogin`：当前站点是否需要重新登录。
 - `apiKeyConfigured`：本地是否已经生成 API Key 哈希。
 - `loginInProgress`：捕获浏览器是否仍在运行。
 - `captureAttempts`：捕获到认证请求的次数。
@@ -219,12 +282,11 @@ Invoke-WebRequest `
 
 当前服务列出：
 
-- `deepseek-v4-flash`
-- `deepseek-v4-pro`
-- 兼容保留的 GPT 别名
+- Sorux 站：`gpt-5.5`、`gpt-5.5-mini`、`gpt-5.1`、`deepseek-v4-flash`、`deepseek-v4-pro`。
+- ChatGPT-Work 站：`work-gpt-6.1-terra`、`work-gpt-6.1-sol`、`work-gpt-6-sol`、`work-gpt-5.6-sol`；仅在本地已保存该站凭据后出现。
 
-实际可用模型以当前上游账号和站点返回结果为准。当前账号已验证的模型是
-`deepseek-v4-flash`。
+实际可用模型以当前上游账号和站点返回结果为准。当前账号已验证的 Sorux 模型是
+`deepseek-v4-flash`；Work 模型以 `work-gpt-6.1-terra` 为默认入口。
 
 ### 6.2 非流式调用
 
@@ -302,6 +364,46 @@ result = client.chat.completions.create(
 print(result.choices[0].message.content)
 ```
 
+### 6.5 ChatGPT-Work 工具活动
+
+Work 站使用 `work-` 前缀模型。流式请求中，工具活动作为独立增量返回：
+
+```powershell
+$body = @{
+  model = 'work-gpt-6.1-terra'
+  stream = $true
+  chattoapi = @{ reasoning = $true }
+  messages = @(@{ role = 'user'; content = '请计算 2+3' })
+} | ConvertTo-Json -Depth 8
+
+Invoke-WebRequest `
+  http://127.0.0.1:8787/v1/chat/completions `
+  -Method Post -Headers $headers -Body $body
+```
+
+每个工具活动形如：
+
+```json
+{"choices":[{"delta":{"chattoapi_tool_activity":{"id":"exec-1","type":"command_execution","phase":"started","label":"run command","icon":"run-command","active":true}}}]}
+```
+
+`phase` 为 `started` / `updated` / `completed`。流式响应末尾会附带一个顶层
+`chattoapi` 汇总对象（`site`、`upstream_model`、`tool_count`、`warnings`、
+`fallback_from`、`fallback_to`）。非流式响应中，工具列表位于
+`chattoapi.work_tools`。
+
+其他行为：
+
+- 思考摘要：请求体加 `"chattoapi": {"reasoning": true}`，或设置
+  `upstream.stations.OneOpenAI.exposeReasoning=true`；摘要通过
+  `delta.reasoning_content` 返回。
+- 容量回退：默认开启。模型容量不足且尚未输出任何内容时，按
+  `fallbackModels` 依次重试，并在 `chattoapi.fallback_from/to` 中说明。
+  上游标记 `can_retry: false`，或返回普通 HTTP 429 限流时不会切换模型。
+  关闭 `autoFallback` 后返回 HTTP 429，`error.code` 为 `model_at_capacity`。
+- 客户端 `tools` / `tool_choice`：Work 站不支持由客户端提供函数定义，
+  字段会被忽略，并返回 `client_tools_not_supported_by_work` 警告。
+
 ## 7. 支持范围和限制
 
 当前支持：
@@ -310,11 +412,12 @@ print(result.choices[0].message.content)
 - system、user、assistant 多轮消息的文本合并。
 - 非流式 JSON 和 SSE 流式响应。
 - 文本消息中的常见字符串内容。
+- Sorux 与 ChatGPT-Work 双站点路由；Work 站的工具活动、思考摘要与容量回退。
 
 当前未完整映射：
 
 - `temperature`、`max_tokens`、`top_p` 等采样参数。
-- tool calls / function calling。
+- 标准 OpenAI `tool_calls`：Work 工具由上游执行，本服务只转述活动，不回填客户端工具结果。
 - 多模态图片内容，仅做占位处理。
 - 上游持久化 `conversation_id`，当前每次请求按单轮上游请求发送。
 

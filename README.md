@@ -1,6 +1,6 @@
 # ChatToAPI
 
-将已登录的 Chatopens 账号转换为本地 OpenAI 兼容接口。项目只支持用户主动登录自己的账号；登录凭据保存在本机加密文件中，不会返回给 API 客户端。
+将已登录的 Chatopens 账号转换为本地 OpenAI 兼容接口。支持 Sorux 站与 ChatGPT-Work 站（`OneOpenAI`）：Work 站会把上游执行的工具活动以 `chattoapi_tool_activity` 增量返回，并在非流式响应的 `chattoapi.work_tools` 中汇总。项目只支持用户主动登录自己的账号；登录凭据按站点分别保存本机加密文件中，不会返回给 API 客户端。
 
 详细文档：
 
@@ -43,6 +43,7 @@ chattoapi.bat start
 chattoapi.bat status
 chattoapi.bat monitor
 chattoapi.bat stop
+chattoapi.bat console      # 打开本地 Web 控制台
 
 # 明确接管已在配置端口运行的旧实例（需确认）
 chattoapi.bat adopt
@@ -57,8 +58,14 @@ chattoapi.bat adopt
 4. Show status
 5. Monitor service
 6. Adopt an existing service on the configured port
-7. Exit
+7. Open the local web console
+8. Log in to Sorux
+9. Log in to ChatGPT-Work
+10. Exit
 ```
+
+`npm run service:*` 通过 `node scripts/service.mjs` 调用 PowerShell，因此在 `cmd.exe`、
+PowerShell 和 Git Bash 中都能正常使用；启动、停止与重启都会在返回前确认结果。
 
 如果启动时提示端口已被占用，先选择 `6`。菜单会要求输入 `ADOPT`，确认后记录该
 Node 进程的 PID；之后可以通过菜单执行状态、监控和停止。无法确认进程属于本项目时，
@@ -79,6 +86,11 @@ powershell.exe -NoLogo -NoProfile -ExecutionPolicy Bypass -File scripts/chattoap
 
 如需在不影响已有实例的情况下并行运行，可临时设置 `CHATTOAPI_PORT`；登录浏览器 Profile 也可通过 `CHATTOAPI_PROFILE_DIR` 指定独立目录。
 
+服务启动后终端会打印本地 Web 控制台地址
+`http://127.0.0.1:8787/ui?t=<启动令牌>`，可查看状态、触发登录、轮换 Key 并测试流式对话。
+后台运行时用 `npm run service:status` 查看 `UiUrl`，或执行 `chattoapi.bat console` 直接打开。
+令牌只用于换取 `HttpOnly` 会话 Cookie，服务重启后失效；不要把该地址暴露给其他机器。
+
 首次启动会在终端显示一次 `ctk_...` API Key。请立即保存；服务重启后不会再次显示明文 Key。
 
 如果自动找不到浏览器，可设置浏览器可执行文件路径：
@@ -93,17 +105,23 @@ npm start
 可以直接运行登录助手：
 
 ```powershell
-npm run login
+npm run login                      # 登录 Sorux 站
+npm run login:sorux                # 同上
+npm run login:work                 # 登录 ChatGPT-Work 站
+npm run login -- --station OneOpenAI  # 等价写法
 ```
 
-它会打开持久化浏览器并等待登录请求捕获，默认最多等待 10 分钟。也可以在服务运行后访问本机接口 `/auth/login` 触发相同流程。
+也可以在服务运行时执行 `npm run service:console` 打开控制台，或使用菜单项 8 / 9
+触发对应站点的登录捕获。
+
+它会打开持久化浏览器并等待登录请求捕获，默认最多等待 10 分钟。也可以在服务运行后访问本机接口 `/auth/login` 触发相同流程；控制台登录卡片的“登录站点”可选择 Sorux 或 ChatGPT-Work。
 
 1. 仅从本机访问 `http://127.0.0.1:8787/auth/login`。
 2. 在弹出的浏览器窗口中完成账号登录。
 3. 登录成功后，在站点首页选择一个 AI 入口进入实际对话（例如“全模型-镜像站”），再发送一条消息。仅停留在登录页或站点列表页不会产生 Bearer 请求，服务无法完成凭据捕获。
 4. 通过 `http://127.0.0.1:8787/auth/status` 查看是否完成登录（只返回状态，不返回凭据）。
 
-凭据保存位置默认为 `data/credentials.enc.json`，加密主密钥默认为项目根目录的 `.chattoapi-master.key`。这两个路径都已加入 `.gitignore`。也可以设置 `CHATTOAPI_MASTER_KEY` 覆盖本地密钥文件。
+凭据保存位置默认为 `data/credentials.enc.json`，加密主密钥默认为项目根目录的 `.chattoapi-master.key`。两个站点分别使用独立凭据与浏览器 Profile（`OneOpenAI` 使用 `${auth.profileDir}-OneOpenAI`），互不影响。这两个路径都已加入 `.gitignore`。也可以设置 `CHATTOAPI_MASTER_KEY` 覆盖本地密钥文件。
 
 服务启动时会检查已保存 JWT 的过期时间；上游返回 401 后会自动清除失效凭据。此时重新访问 `/auth/login` 即可完成下一次登录；如果上一次登录窗口仍在运行，使用 `http://127.0.0.1:8787/auth/login?force=1` 先关闭旧窗口并重新打开。
 
@@ -124,6 +142,17 @@ Invoke-WebRequest http://127.0.0.1:8787/v1/chat/completions -Method Post -Header
 ```
 
 也兼容常见 OpenAI SDK 的 `base_url=http://127.0.0.1:8787/v1` 配置。
+
+ChatGPT-Work 站使用 `work-` 前缀的模型别名：
+
+```powershell
+$body = @{ model = 'work-gpt-6.1-terra'; stream = $true; chattoapi = @{ reasoning = $true }; messages = @(@{ role = 'user'; content = '你好' }) } | ConvertTo-Json -Depth 8
+```
+
+- 工具活动：流式响应中每个 `choices[0].delta.chattoapi_tool_activity` 是一条工具活动（`started` / `updated` / `completed`）；非流式响应在顶层 `chattoapi.work_tools` 返回完整列表。
+- 思考摘要：请求体加 `"chattoapi": { "reasoning": true }` 或配置 `upstream.stations.OneOpenAI.exposeReasoning=true`，摘要通过 `delta.reasoning_content`（非流式为 `message.reasoning_content`）返回。
+- 容量回退：默认开启。模型容量不足且尚未输出内容时，会按 `fallbackModels` 依次重试，并在响应中给出 `chattoapi.fallback_from` / `fallback_to`；关闭 `autoFallback` 时映射为 HTTP 429 `model_at_capacity`。
+- 客户端 `tools` / `tool_choice` 字段会被忽略，并返回 `client_tools_not_supported_by_work` 警告；Work 站的工具由上游自行执行，不产生标准 `tool_calls`。
 
 ### 接入 magpie
 
@@ -147,7 +176,8 @@ npm run key:rotate
 ## 当前边界
 
 - 上游会话仍按单轮 HTTP 请求发送，但本地会将支持的多轮消息按角色合并到一个上下文文本中，尚未维护上游 `conversation_id`。
-- `temperature`、`max_tokens`、tool calls 和多模态消息暂未映射到上游。
+- `temperature`、`max_tokens` 和多模态消息暂未映射到上游。
+- ChatGPT-Work 的工具调用由上游执行，本服务只转述工具活动，不支持由客户端提供函数定义后再回填工具结果。
 - 上游请求和流式读取默认总超时 120 秒，可通过 `upstream.requestTimeoutMs` 调整。
 - Windows HTTPS 请求优先通过系统 `curl.exe`（Schannel）传输，以兼容部分站点的 TLS 重协商；请求配置文件只在临时目录短暂存在并在进程结束后清理。请确保系统可执行 `curl.exe`。
 - 默认只绑定回环地址；如需远程访问，必须在反向代理层增加 TLS、认证和限流。

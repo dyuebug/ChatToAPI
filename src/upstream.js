@@ -7,6 +7,9 @@ import path from 'node:path';
 import { spawn } from 'node:child_process';
 import { Readable } from 'node:stream';
 import { log } from './logger.js';
+import { resolveStation } from './stations/index.js';
+import { buildSoruxRequest } from './stations/sorux.js';
+import { STATION_IDS } from './stations/contracts.js';
 
 export const uuid = () => crypto.randomUUID();
 
@@ -14,53 +17,8 @@ export const uuid = () => crypto.randomUUID();
 // 使用随机 UUID 会被判定为「对话不存在」，返回 200 + {"detail":"请重新创建一个对话使用"}。
 export const NEW_CONVERSATION_PARENT_ID = 'client-created-root';
 
-/**
- * Build the request body for POST {base}/backend-api/f/conversation
- * (new-conversation mode: conversation_id null, parent_message_id 固定为 NEW_CONVERSATION_PARENT_ID).
- */
-export function buildRequestBody({ model, text, conversationId = null, parentMessageId, websocketRequestId }) {
-  const messages = [
-    {
-      author: { role: 'user' },
-      content: { content_type: 'text', parts: [text] },
-    },
-  ];
-  return {
-    action: 'next',
-    conversation_id: conversationId,
-    conversation_origin: null,
-    model,
-    timezone_offset_min: -new Date().getTimezoneOffset(),
-    suggestions: [],
-    history_and_training_disabled: false,
-    messages,
-    parent_message_id: parentMessageId,
-    websocket_request_id: websocketRequestId,
-    force_paragen: false,
-    supported_encodings: ['v1'],
-  };
-}
-
-function pickHeaders(cfg) {
-  const c = cfg.upstream;
-  const h = c.headers || {};
-  const hdrs = {
-    accept: 'text/event-stream',
-    'content-type': 'application/json',
-    authorization: `Bearer ${c.credential.bearerToken}`,
-    cookie: c.credential.cookie,
-    'oai-client-build-number': h['oai-client-build-number'] || '4903962',
-    'oai-client-version': h['oai-client-version'] || 'prod-c8317ee14c178f58734a7c3fe41bcfaca8156ed1',
-    'oai-device-id': h['oai-device-id'] || '00000000-0000-4000-8000-000000000000',
-    'oai-language': h['oai-language'] || 'en',
-    'x-conduit-token': h['x-conduit-token'] || 'saas_nexus_no_token',
-    'openai-sentinel-chat-requirements-token': h['openai-sentinel-chat-requirements-token'] || 'Fuck_You',
-    'user-agent': h['user-agent'] || 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/152.0.0.0 Safari/537.36',
-  };
-  if (h['openai-sentinel-turnstile-token']) {
-    hdrs['openai-sentinel-turnstile-token'] = h['openai-sentinel-turnstile-token'];
-  }
-  return hdrs;
+export function buildRequestBody(options) {
+  return buildSoruxRequest(options);
 }
 
 function escapeCurlConfig(value) {
@@ -88,11 +46,6 @@ function parseCurlHeaders(raw) {
   return null;
 }
 
-/**
- * Windows Schannel fallback for hosts that renegotiate TLS in a way Node/OpenSSL
- * does not complete. Credentials stay in a short-lived curl config file rather
- * than the process command line; the file is removed when curl exits.
- */
 function requestUpstreamViaCurl(url, { method, headers, body, signal }) {
   return new Promise((resolve, reject) => {
     const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'chattoapi-curl-'));
@@ -117,8 +70,6 @@ function requestUpstreamViaCurl(url, { method, headers, body, signal }) {
       stdio: ['pipe', 'pipe', 'pipe'],
       windowsHide: true,
     });
-    // Attach the Web stream immediately; Node may discard buffered stdout if
-    // the child exits before a consumer is attached.
     const bodyStream = Readable.toWeb(child.stdout);
     let stderr = '';
     let settled = false;
@@ -229,7 +180,6 @@ function requestUpstream(url, { method, headers, body, signal }) {
   });
 }
 
-/** Split raw SSE text into frames of {event, data[]} */
 export function splitSse(text) {
   const frames = [];
   for (const raw of text.split('\n\n')) {
@@ -244,109 +194,274 @@ export function splitSse(text) {
   return frames;
 }
 
-/**
- * Stream one conduit completion from upstream.
- * onContent(chunk) / onReasoning(chunk) / onMeta(msg) called as parsed.
- * Resolves when stream finishes (message_stream_complete or [DONE]).
- */
-export async function streamCompletion({ cfg, model, text, signal, onContent, onReasoning, onMeta, onDone }) {
-  const credential = cfg.upstream?.credential || {};
-  if (!credential.cookie || !credential.bearerToken) {
-    const e = new Error('尚未完成上游登录，请先调用 GET /auth/login');
-    e.status = 503;
-    throw e;
+function timeoutError() {
+  const error = new Error('upstream request timed out or was cancelled');
+  error.status = 504;
+  return error;
+}
+
+function isTimeoutError(error) {
+  return error?.name === 'TimeoutError' || error?.name === 'AbortError';
+}
+
+function mapHttpStatus(status) {
+  if (status === 401 || status === 403) return status;
+  if (status === 504) return 504;
+  if (status >= 500) return 502;
+  return status;
+}
+
+function createHttpError(status, requestPath, bodyText, extra = {}) {
+  const capacity = status === 429 && /model_at_capacity/i.test(bodyText);
+  const error = new Error(capacity
+    ? 'selected Work model is temporarily at capacity'
+    : `upstream HTTP ${status} (${requestPath})`);
+  error.status = capacity ? 429 : mapHttpStatus(status);
+  error.upstreamBody = bodyText;
+  if (capacity) {
+    error.type = 'rate_limit_error';
+    error.code = 'model_at_capacity';
+    error.retryable = !(/"can_retry"\s*:\s*false|can_retry\s*[:=]\s*false/i.test(bodyText));
   }
-  const base = cfg.upstream.baseUrl.replace(/\/$/, '');
-  const path = cfg.upstream.conversationPath || '/backend-api/f/conversation';
-  const fallbackPath = cfg.upstream.conversationFallbackPath
-    || (path === '/backend-api/f/conversation' ? '/backend-api/conversation' : '/backend-api/f/conversation');
-  const candidatePaths = fallbackPath && fallbackPath !== path ? [path, fallbackPath] : [path];
-  const body = buildRequestBody({
+  Object.assign(error, extra);
+  return error;
+}
+
+function createRequestSignal(cfg, signal) {
+  const timeoutMs = Number(cfg?.upstream?.requestTimeoutMs || 120000);
+  const timeoutSignal = timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : null;
+  return signal && timeoutSignal
+    ? AbortSignal.any([signal, timeoutSignal])
+    : (signal || timeoutSignal || undefined);
+}
+
+function effectiveCredential(cfg, options) {
+  return options.credential ?? cfg?.upstream?.credential ?? {};
+}
+
+function effectiveStoredHeaders(cfg, options) {
+  return options.storedHeaders ?? cfg?.upstream?.headers ?? {};
+}
+
+function invoke(callback, value) {
+  if (typeof callback === 'function') callback(value);
+}
+
+async function readSseLines(response, handleData) {
+  const decoder = new TextDecoder();
+  let buf = '';
+  const reader = response.body.getReader();
+  let stop = false;
+  const consumeLine = (line) => {
+    const normalized = line.endsWith('\r') ? line.slice(0, -1) : line;
+    if (!normalized.trim() || normalized.startsWith('event:') || normalized.startsWith(':')) return;
+    if (!normalized.startsWith('data:')) return;
+    if (handleData(normalized.slice(5).replace(/^ /, '')) === true) stop = true;
+  };
+  try {
+    while (!stop) {
+      const { value, done } = await reader.read();
+      if (done) break;
+      buf += decoder.decode(value, { stream: true });
+      const lines = buf.split('\n');
+      buf = lines.pop();
+      for (const line of lines) {
+        consumeLine(line);
+        if (stop) break;
+      }
+    }
+    if (!stop && buf.trim()) {
+      for (const line of buf.split('\n')) consumeLine(line);
+    }
+  } catch (error) {
+    if (isTimeoutError(error)) throw timeoutError();
+    throw error;
+  } finally {
+    if (stop) await reader.cancel().catch(() => {});
+  }
+}
+
+async function streamWork({
+  cfg, model, text, signal, station, credential, storedHeaders,
+  onContent, onReasoning, onMeta, onDone, onToolActivity, onWarning, onSnapshot, onStation,
+  exposeReasoning, maxReasoningBytes,
+}) {
+  const { adapter, stationId, stationConfig, publicModel, upstreamModel } = station;
+  const request = adapter.buildRequest({
+    cfg,
     model,
     text,
+    stationConfig,
+    parentMessageId: NEW_CONVERSATION_PARENT_ID,
+  });
+  const headers = adapter.buildHeaders({
+    cfg,
+    credential: effectiveCredential(cfg, { credential }),
+    storedHeaders: effectiveStoredHeaders(cfg, { storedHeaders }),
+  });
+  const base = cfg.upstream.baseUrl.replace(/\/$/, '');
+  const requestSignal = createRequestSignal(cfg, signal);
+  invoke(onStation, { stationId, publicModel, upstreamModel });
+  log.debug('upstream request', { station: stationId, path: request.path, model: upstreamModel, textLength: typeof text === 'string' ? text.length : 0 });
+
+  let response;
+  try {
+    response = await requestUpstream(`${base}${request.path}`, {
+      method: request.method,
+      headers,
+      body: JSON.stringify(request.body),
+      signal: requestSignal,
+    });
+  } catch (error) {
+    if (isTimeoutError(error)) throw timeoutError();
+    throw error;
+  }
+  if (!response.ok || !response.body) {
+    const bodyText = await response.text().catch(() => '');
+    throw createHttpError(response.status, request.path, bodyText, { site: stationId, upstreamModel });
+  }
+  const ctype = response.headers.get('content-type') || '';
+  if (!ctype.includes('text/event-stream')) {
+    const bodyText = await response.text().catch(() => '');
+    const error = new Error(`upstream returned non-stream (${response.status})`);
+    error.status = /未登录|not\s+logged\s*in|unauthori[sz]ed/i.test(bodyText) ? 401 : 502;
+    error.upstreamBody = bodyText;
+    throw error;
+  }
+
+  let done = false;
+  let finished = false;
+  let emittedOutput = false;
+  let reducerError = null;
+  const reducer = adapter.createReducer({ exposeReasoning: Boolean(exposeReasoning), maxReasoningBytes });
+  await readSseLines(response, (raw) => {
+    if (raw === '[DONE]') {
+      done = true;
+      return true;
+    }
+    let frame;
+    try { frame = JSON.parse(raw); } catch { return false; }
+    // Work 首帧可能是 data: "v1"（delta_encoding 声明），不是补丁帧。
+    if (typeof frame !== 'object' || frame === null || Array.isArray(frame)) return false;
+    const events = reducer.reduce(frame);
+    for (const event of events) {
+      if (event.type === 'content') {
+        emittedOutput = true;
+        invoke(onContent, event.delta);
+      } else if (event.type === 'reasoning') {
+        invoke(onReasoning, event.delta);
+      } else if (event.type === 'tool_activity') {
+        emittedOutput = true;
+        invoke(onToolActivity, event.activity);
+      } else if (event.type === 'meta') {
+        invoke(onMeta, event.value);
+      } else if (event.type === 'warning') {
+        invoke(onWarning, event);
+      } else if (event.type === 'done') {
+        finished = true;
+      } else if (event.type === 'error') {
+        reducerError = event.error;
+      }
+    }
+    return Boolean(reducerError);
+  });
+  // 非流式响应以 reducer 最终快照为准：正文被 replace/remove 改写时，增量拼接无法撤回旧文本。
+  invoke(onSnapshot, reducer.snapshot());
+  invoke(onDone, { done, finished, stationId, upstreamModel });
+  if (reducerError) {
+    throw Object.assign(new Error(reducerError.message), reducerError, {
+      noOutput: !emittedOutput,
+      site: stationId,
+      upstreamModel,
+    });
+  }
+}
+
+async function streamSorux({
+  cfg, model, text, signal, station, credential, storedHeaders, onContent, onReasoning, onMeta, onDone,
+}) {
+  const { adapter, stationId, stationConfig, upstreamModel } = station;
+  const effectiveCred = credential ?? cfg.upstream?.credential ?? {};
+  if (!effectiveCred.cookie || !effectiveCred.bearerToken) {
+    const error = new Error('尚未完成上游登录，请先调用 GET /auth/login');
+    error.status = 503;
+    throw error;
+  }
+  const base = cfg.upstream.baseUrl.replace(/\/$/, '');
+  const request = adapter.buildRequest({
+    cfg,
+    model,
+    text,
+    stationConfig,
     parentMessageId: NEW_CONVERSATION_PARENT_ID,
     websocketRequestId: uuid(),
   });
-  log.debug('POST', `${base}${path}`, JSON.stringify(body));
+  const body = request.body;
+  const path = request.path;
+  const fallbackPath = cfg.upstream.conversationFallbackPath
+    || (path === '/backend-api/f/conversation' ? '/backend-api/conversation' : '/backend-api/f/conversation');
+  const candidatePaths = fallbackPath && fallbackPath !== path ? [path, fallbackPath] : [path];
+  const headers = adapter.buildHeaders({
+    cfg,
+    credential: effectiveCred,
+    storedHeaders: storedHeaders ?? cfg.upstream?.headers ?? {},
+  });
+  const requestSignal = createRequestSignal(cfg, signal);
+  log.debug('upstream request', { station: stationId, path, model: upstreamModel, textLength: typeof text === 'string' ? text.length : 0 });
 
-  const timeoutMs = Number(cfg.upstream.requestTimeoutMs || 120000);
-  const timeoutSignal = timeoutMs > 0 ? AbortSignal.timeout(timeoutMs) : null;
-  const requestSignal = signal && timeoutSignal
-    ? AbortSignal.any([signal, timeoutSignal])
-    : (signal || timeoutSignal || undefined);
-
-  let res;
+  let response;
   let requestPath = path;
   for (let index = 0; index < candidatePaths.length; index += 1) {
     requestPath = candidatePaths[index];
     try {
-      res = await requestUpstream(`${base}${requestPath}`, {
-        method: 'POST',
-        headers: pickHeaders(cfg),
+      response = await requestUpstream(`${base}${requestPath}`, {
+        method: request.method,
+        headers,
         body: JSON.stringify(body),
         signal: requestSignal,
       });
     } catch (error) {
-      if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
-        const timeoutError = new Error('upstream request timed out or was cancelled');
-        timeoutError.status = 504;
-        throw timeoutError;
-      }
+      if (isTimeoutError(error)) throw timeoutError();
       throw error;
     }
     if (index === candidatePaths.length - 1) break;
-    if ([404, 405].includes(res.status)) {
-      await res.text().catch(() => '');
+    if ([404, 405].includes(response.status)) {
+      await response.text().catch(() => '');
       log.debug('upstream path fallback', requestPath, '->', candidatePaths[index + 1]);
       continue;
     }
-    // Sorux 当前会对旧账号在新版 /f 路径返回 500，而不是 404/405。
-    // 该业务错误明确表示应使用兼容的旧 conversation endpoint，可安全回退。
-    if (res.status === 500) {
-      const errorText = await res.text().catch(() => '');
+    if (response.status === 500) {
+      const errorText = await response.text().catch(() => '');
       if (/api\s+mode\s+not\s+supported/i.test(errorText)) {
         log.debug('upstream path fallback', requestPath, '->', candidatePaths[index + 1]);
         continue;
       }
-      const e = new Error(`upstream HTTP ${res.status} (${requestPath}): ${errorText.slice(0, 300)}`);
-      e.status = res.status;
-      throw e;
+      throw createHttpError(response.status, requestPath, errorText, { site: stationId, upstreamModel });
     }
     break;
   }
 
-  if (!res.ok || !res.body) {
-    const errText = await res.text().catch(() => '');
-    log.error('upstream http', res.status, errText.slice(0, 500));
-    const e = new Error(`upstream HTTP ${res.status} (${requestPath}): ${errText.slice(0, 300)}`);
-    e.status = res.status;
-    throw e;
+  if (!response.ok || !response.body) {
+    const errorText = await response.text().catch(() => '');
+    throw createHttpError(response.status, requestPath, errorText, { site: stationId, upstreamModel });
   }
 
-  const ctype = res.headers.get('content-type') || '';
+  const ctype = response.headers.get('content-type') || '';
   log.debug('upstream ctype', ctype);
-
-  // If upstream did NOT return an event stream, read and surface the body (usually an error/notice).
   if (!ctype.includes('text/event-stream')) {
-    const bodyText = await res.text().catch(() => '');
-    log.error('upstream non-stream response:', res.status, bodyText.slice(0, 2000));
-    const e = new Error(`upstream returned non-stream (${res.status}): ${bodyText.slice(0, 800)}`);
-    e.status = res.status >= 400 ? res.status : (/未登录|not\s+logged\s*in|unauthori[sz]ed/i.test(bodyText) ? 401 : 502);
-    e.upstreamBody = bodyText;
-    throw e;
+    const bodyText = await response.text().catch(() => '');
+    const error = new Error(`upstream returned non-stream (${response.status})`);
+    error.status = /未登录|not\s+logged\s*in|unauthori[sz]ed/i.test(bodyText) ? 401 : 502;
+    error.upstreamBody = bodyText;
+    throw error;
   }
 
   const decoder = new TextDecoder();
   let buf = '';
-  // delta_encoding v1: frames may omit unchanged fields (o/p) from the previous delta
-  let lastOp = null; // {o, p}
-
-  const reader = res.body.getReader();
+  let lastOp = null;
+  const reader = response.body.getReader();
   let done = false;
   let finished = false;
-
-  // 上游有两种增量编码：JSON-patch（o/p/v）与「游标 + 全量快照」（c/v）。
-  // 快照帧会重复发送整条消息，这里按 message.id 记录已输出的文本，只补发新增后缀。
   const emitted = new Map();
   const emitSnapshot = (node) => {
     const message = node && typeof node === 'object' ? node.message : null;
@@ -355,100 +470,99 @@ export async function streamCompletion({ cfg, model, text, signal, onContent, on
     if (message.recipient && message.recipient !== 'all') return;
     const parts = message.content?.parts;
     if (!Array.isArray(parts)) return;
-    const text = parts.filter(part => typeof part === 'string').join('');
+    const snapshotText = parts.filter(part => typeof part === 'string').join('');
     const key = message.id || 'assistant';
-    const prev = emitted.get(key) || '';
-    if (text === prev) return;
-    if (text.startsWith(prev)) {
-      const delta = text.slice(prev.length);
+    const previous = emitted.get(key) || '';
+    if (snapshotText === previous) return;
+    if (snapshotText.startsWith(previous)) {
+      const delta = snapshotText.slice(previous.length);
       if (delta && onContent) onContent(delta);
     }
-    // 非前缀增长（快照回退/改写）无法撤回已发送内容，只更新基线避免重复输出。
-    emitted.set(key, text);
+    emitted.set(key, snapshotText);
   };
-
   const applyOp = (op) => {
     if (!op || typeof op !== 'object') return;
-    const o = op.o || (lastOp && lastOp.o) || null;
-    const p = op.p !== undefined ? op.p : (lastOp && lastOp.p) || '';
-    if (o === 'add' && p === '' && op.v && typeof op.v === 'object' && !Array.isArray(op.v)) {
-      // 完整节点新增：可能是消息骨架，也可能已带正文（快照式）。
+    const operation = op.o || (lastOp && lastOp.o) || null;
+    const pointer = op.p !== undefined ? op.p : (lastOp && lastOp.p) || '';
+    if (operation === 'add' && pointer === '' && op.v && typeof op.v === 'object' && !Array.isArray(op.v)) {
       emitSnapshot(op.v);
-      lastOp = { o, p };
+      lastOp = { o: operation, p: pointer };
       return;
     }
-    if (o === 'append' && typeof op.v === 'string') {
-      lastOp = { o, p };
-      if (p.includes('/content/parts/')) {
-        const idx = p.split('/').filter(s => s !== '' && !isNaN(Number(s))).pop();
+    if (operation === 'append' && typeof op.v === 'string') {
+      lastOp = { o: operation, p: pointer };
+      if (pointer.includes('/content/parts/')) {
+        const idx = pointer.split('/').filter(part => part !== '' && !isNaN(Number(part))).pop();
         const idxNum = Number(idx);
-        // part 0 = visible text; others (reasoning) ignored in MVP unless named
         if (idxNum === 0) onContent && onContent(op.v);
         else onReasoning && onReasoning(op.v);
       }
       return;
     }
-    lastOp = { o, p };
+    lastOp = { o: operation, p: pointer };
   };
-
-  const handleData = (line) => {
-    const raw = line.startsWith('data:') ? line.slice(5).replace(/^ /, '') : line;
-    if (raw === '[DONE]') { done = true; return; }
-    let j;
-    try { j = JSON.parse(raw); } catch { return; }
-    if (typeof j !== 'object' || j === null) return; // e.g. delta_encoding data "v1"
-    if (j.event === 'delta_encoding' && typeof j.data === 'string' && j.data.startsWith('"')) {
-      // {"event":"delta_encoding","data":"v1"} — we handle raw JSON-patch deltas below regardless
-      return;
+  const handleData = (raw) => {
+    if (raw === '[DONE]') { done = true; return true; }
+    let frame;
+    try { frame = JSON.parse(raw); } catch { return false; }
+    if (typeof frame !== 'object' || frame === null) return false;
+    if (frame.event === 'delta_encoding' && typeof frame.data === 'string' && frame.data.startsWith('"')) return false;
+    if (frame.type === 'server_ste_metadata') return false;
+    if (frame.type === 'message_stream_complete') { finished = true; return false; }
+    if (frame.type === 'title_generation') return false;
+    if (frame.type === 'message_marker' && frame.marker === 'last_token') { done = true; return true; }
+    if (Array.isArray(frame.v)) {
+      for (const op of frame.v) applyOp(op);
+      return false;
     }
-    if (j.type === 'server_ste_metadata') return;
-    if (j.type === 'message_stream_complete') { finished = true; return; }
-    if (j.type === 'title_generation') return;
-    if (j.type === 'message_marker' && j.marker === 'last_token') { done = true; return; }
-    // 批量 patch：{"o":"patch","v":[{o,p,v},...]} 或 {"v":[{o,p,v},...]}
-    if (Array.isArray(j.v)) {
-      for (const op of j.v) applyOp(op);
-      return;
+    if ('o' in frame || 'p' in frame || ('v' in frame && (frame.v === null || typeof frame.v !== 'object'))) {
+      applyOp(frame);
+      return false;
     }
-    // 单个 patch：{"o":...,"p":...,"v":...}；也兼容省略 o/p 的继承帧（此时 v 为标量）
-    if ('o' in j || 'p' in j || ('v' in j && (j.v === null || typeof j.v !== 'object'))) {
-      applyOp(j);
-      return;
+    if (frame.v && typeof frame.v === 'object') {
+      emitSnapshot(frame.v);
+      return false;
     }
-    // 全量快照：{"c":<游标>,"v":{...}}
-    if (j.v && typeof j.v === 'object') {
-      emitSnapshot(j.v);
-      return;
-    }
-    if (j.conversation_id) { onMeta && onMeta(j); }
+    if (frame.conversation_id) onMeta && onMeta(frame);
+    return false;
   };
 
   try {
-    while (true) {
-      const { value, done: rd } = await reader.read();
-      if (rd) break;
+    let stop = false;
+    while (!stop) {
+      const { value, done: readDone } = await reader.read();
+      if (readDone) break;
       buf += decoder.decode(value, { stream: true });
       const lines = buf.split('\n');
       buf = lines.pop();
-      for (const line of lines) {
-        if (!line.trim()) continue;
-        if (line.startsWith('event:') || line.startsWith(':')) continue;
-        if (line.startsWith('data:')) handleData(line);
+      for (const rawLine of lines) {
+        const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+        if (!line.trim() || line.startsWith('event:') || line.startsWith(':')) continue;
+        if (line.startsWith('data:') && handleData(line.slice(5).replace(/^ /, ''))) stop = done;
+        if (stop) break;
       }
     }
-    if (buf.trim()) {
-      for (const line of buf.split('\n')) {
-        if (line.trim() && line.startsWith('data:')) handleData(line);
+    if (!done && buf.trim()) {
+      for (const rawLine of buf.split('\n')) {
+        const line = rawLine.endsWith('\r') ? rawLine.slice(0, -1) : rawLine;
+        if (line.trim() && line.startsWith('data:')) handleData(line.slice(5).replace(/^ /, ''));
       }
     }
   } catch (error) {
-    if (error?.name === 'TimeoutError' || error?.name === 'AbortError') {
-      const timeoutError = new Error('upstream request timed out or was cancelled');
-      timeoutError.status = 504;
-      throw timeoutError;
-    }
+    if (isTimeoutError(error)) throw timeoutError();
     throw error;
   }
   if (!done && !finished) log.debug('stream ended without [DONE]/complete marker');
-  if (onDone) onDone({ done, finished });
+  invoke(onDone, { done, finished, stationId, upstreamModel });
 }
+
+export async function streamUpstream(options = {}) {
+  const { cfg = {}, model, text, signal, onContent, onReasoning, onMeta, onDone } = options;
+  const station = resolveStation(model, cfg);
+  if (station.stationId === STATION_IDS.ONE_OPENAI) {
+    return streamWork({ ...options, cfg, model, text, signal, station, onContent, onReasoning, onMeta, onDone });
+  }
+  return streamSorux({ ...options, cfg, model, text, signal, station, onContent, onReasoning, onMeta, onDone });
+}
+
+export const streamCompletion = streamUpstream;

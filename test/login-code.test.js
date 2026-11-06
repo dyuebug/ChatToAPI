@@ -39,6 +39,16 @@ try {
   assert.equal(requestPath, '/API/Web/User/DynamicCodeLogin');
   assert.equal(requestReferer, `http://127.0.0.1:${port}/Web/Login.html`);
 
+  const mismatchManager = Object.create(CredentialManager.prototype);
+  mismatchManager.cfg = manager.cfg;
+  mismatchManager.loginStationId = 'OneOpenAI';
+  mismatchManager.loginContext = { pages: () => [page] };
+  await assert.rejects(
+    () => mismatchManager.submitDynamicCode('test-code', { stationId: 'Sorux' }),
+    /当前登录窗口属于 OneOpenAI/,
+  );
+  console.log('PASS: dynamic code rejects a station that does not match the open login window');
+
   const browserPage = {
     url: () => `http://127.0.0.1:${port}/Web/Login.html`,
     evaluate: (fn, args) => fn(args),
@@ -67,7 +77,7 @@ try {
   };
   const successResult = await successManager.submitDynamicCode('success');
   assert.deepEqual(successResult, { ok: true, message: '登录成功，凭据已加密保存' });
-  assert.equal(successManager.state.upstream.credential.cookie, 'session=ok');
+  assert.equal(successManager.state.stations.Sorux.credential.cookie, 'session=ok');
   assert.equal(closed, true);
   console.log('PASS: dynamic code works before page navigation');
 } finally {

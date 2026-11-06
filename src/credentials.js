@@ -127,6 +127,7 @@ function summarizeSseBody(raw) {
 export class CredentialManager {
   constructor(cfg) {
     this.cfg = cfg;
+    this.baseUpstreamHeaders = { ...(cfg.upstream?.headers || {}) };
     const auth = cfg.auth || {};
     this.root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
     this.dataDir = path.resolve(this.root, auth.dataDir || 'data');
@@ -134,6 +135,7 @@ export class CredentialManager {
     this.storePath = path.join(this.dataDir, 'credentials.enc.json');
     this.keyPath = path.join(this.root, KEY_FILE);
     this.state = this.readState();
+    this.normalizeState();
     this.initialApiKey = null;
     this.loginContext = null;
     this.loginTimer = null;
@@ -145,6 +147,51 @@ export class CredentialManager {
     this.loginProtocol = null;
     this.lastAiEntryAction = null;
     this.lastAiEntryUrl = null;
+    this.loginStationId = null;
+  }
+
+  normalizeStationId(stationId) {
+    if (stationId === 'Sorux' || stationId === 'OneOpenAI') return stationId;
+    const configured = this.cfg.upstream?.car;
+    return configured === 'OneOpenAI' ? 'OneOpenAI' : 'Sorux';
+  }
+
+  normalizeState() {
+    const state = this.state && typeof this.state === 'object' ? this.state : {};
+    if (state.version === 2) {
+      if (!state.stations || typeof state.stations !== 'object' || Array.isArray(state.stations)) state.stations = {};
+      state.activeStation = this.normalizeStationId(state.activeStation);
+      this.state = state;
+      return state;
+    }
+    const car = this.normalizeStationId(this.cfg.upstream?.car || 'Sorux');
+    const migrated = {
+      ...state,
+      version: 2,
+      activeStation: car,
+      stations: state.upstream ? { [car]: { ...state.upstream } } : {},
+    };
+    delete migrated.upstream;
+    this.state = migrated;
+    return migrated;
+  }
+
+  getStationState(stationId) {
+    const entry = this.state.stations?.[this.normalizeStationId(stationId)];
+    return entry ? { ...entry, credential: { ...(entry.credential || {}) }, headers: { ...(entry.headers || {}) } } : null;
+  }
+
+  getStationRuntime(stationId) {
+    const id = this.normalizeStationId(stationId);
+    const entry = this.state.stations?.[id] || {};
+    const credential = { ...(entry.credential || {}) };
+    return {
+      stationId: id,
+      credential,
+      headers: { ...(entry.headers || {}) },
+      hasCredentials: this.hasUpstreamCredentials(id),
+      tokenExpired: Boolean(credential.bearerToken) && tokenExpired(credential.bearerToken),
+    };
   }
 
   masterKey() {
@@ -186,31 +233,45 @@ export class CredentialManager {
 
   save() {
     fs.mkdirSync(this.dataDir, { recursive: true });
-    fs.writeFileSync(this.storePath, JSON.stringify(this.encrypt(this.state), null, 2) + '\n', { mode: 0o600 });
+    const tempPath = path.join(this.dataDir, `.credentials-${process.pid}-${crypto.randomBytes(8).toString('hex')}.tmp`);
+    try {
+      fs.writeFileSync(tempPath, JSON.stringify(this.encrypt(this.state), null, 2) + '\n', { mode: 0o600, flag: 'wx' });
+      fs.renameSync(tempPath, this.storePath);
+    } catch (error) {
+      try { fs.unlinkSync(tempPath); } catch {}
+      throw error;
+    }
   }
 
-  loadIntoConfig() {
+  loadIntoConfig(stationId = this.state?.activeStation) {
     // 正式入口只使用加密存储中的凭据，避免旧 config.json 明文凭据绕过管理器。
-    this.cfg.upstream.credential = this.state.upstream?.credential || {};
-    this.cfg.upstream.headers = { ...(this.cfg.upstream.headers || {}), ...(this.state.upstream?.headers || {}) };
-    if (!this.hasUpstreamCredentials()) this.cfg.upstream.credential = {};
+    const id = this.normalizeStationId(stationId);
+    const station = this.state.stations?.[id];
+    this.cfg.upstream.credential = { ...(station?.credential || {}) };
+    this.cfg.upstream.headers = { ...this.baseUpstreamHeaders, ...(station?.headers || {}) };
+    if (!this.hasUpstreamCredentials(id)) this.cfg.upstream.credential = {};
   }
 
-  hasUpstreamCredentials() {
-    const c = this.cfg.upstream?.credential || {};
+  hasUpstreamCredentials(stationId = this.state?.activeStation) {
+    const c = this.state.stations?.[this.normalizeStationId(stationId)]?.credential || {};
     // 上游站点以 Cookie 会话为主，Authorization 里的 JWT 可能先于会话过期。
     // 是否真正有效交由上游判定：请求返回 401 时会调用 invalidateUpstream()。
     return Boolean(c.cookie && c.bearerToken && !c.cookie.startsWith('PASTE_') && !c.bearerToken.startsWith('PASTE_'));
   }
 
-  upstreamTokenExpired() {
-    const c = this.state.upstream?.credential || this.cfg.upstream?.credential || {};
+  upstreamTokenExpired(stationId = this.state?.activeStation) {
+    const c = this.state.stations?.[this.normalizeStationId(stationId)]?.credential || {};
     return Boolean(c.bearerToken) && tokenExpired(c.bearerToken);
   }
 
   invalidateUpstream() {
-    delete this.state.upstream;
-    this.cfg.upstream.credential = {};
+    return this.invalidateStation(this.state.activeStation);
+  }
+
+  invalidateStation(stationId) {
+    const id = this.normalizeStationId(stationId);
+    delete this.state.stations[id];
+    if (id === this.state.activeStation) this.cfg.upstream.credential = {};
     this.save();
   }
 
@@ -260,40 +321,69 @@ export class CredentialManager {
     return actual.length === expected.length && crypto.timingSafeEqual(actual, expected);
   }
 
-  captureHeaders(headers) {
-    const authorization = headers.authorization || '';
-    const cookie = headers.cookie || '';
+  captureHeaders(headers, { stationId = this.state?.activeStation } = {}) {
+    const id = this.normalizeStationId(stationId);
+    const normalizedHeaders = Object.fromEntries(Object.entries(headers || {}).map(([key, value]) => [key.toLowerCase(), value]));
+    const authorization = normalizedHeaders.authorization || '';
+    const cookie = normalizedHeaders.cookie || '';
     const bearerToken = authorization.replace(/^Bearer\s+/i, '').trim();
     if (!bearerToken || !cookie) throw new Error('登录请求中没有同时发现 Authorization 和 Cookie');
     // JWT 的 exp 早于站点会话失效是常态：不再本地否决，交由上游 401 判定。
     const expired = tokenExpired(bearerToken);
     const selected = {};
-    for (const [key, value] of Object.entries(headers)) {
-      if (key.startsWith('oai-') || key.startsWith('openai-') || key === 'x-conduit-token' || key === 'user-agent') selected[key] = value;
+    const oneOpenAiHeaders = new Set(['sec-ch-ua', 'sec-ch-ua-mobile', 'sec-ch-ua-platform', 'origin', 'referer']);
+    for (const [key, value] of Object.entries(normalizedHeaders)) {
+      const name = key.toLowerCase();
+      if (name.startsWith('oai-') || name.startsWith('openai-') || name === 'x-conduit-token' || name === 'user-agent'
+        || (id === 'OneOpenAI' && oneOpenAiHeaders.has(name))) selected[name] = value;
     }
-    this.state.upstream = { credential: { cookie, bearerToken }, headers: selected, tokenExpired: expired };
-    this.cfg.upstream.credential = { cookie, bearerToken };
-    this.cfg.upstream.headers = { ...(this.cfg.upstream.headers || {}), ...selected };
+    const cookies = cookie.split(';').filter((item) => item.trim()).length;
+    if (!this.state.stations || typeof this.state.stations !== 'object') this.state.stations = {};
+    this.state.stations[id] = {
+      ...(this.state.stations[id] || {}),
+      credential: { cookie, bearerToken }, headers: selected,
+      capturedAt: new Date().toISOString(), cookieCount: cookies, tokenExpired: expired,
+    };
+    this.state.activeStation = id;
+    if (id === this.normalizeStationId(this.loginStationId || this.state.activeStation)) {
+      this.cfg.upstream.credential = { cookie, bearerToken };
+      this.cfg.upstream.headers = { ...this.baseUpstreamHeaders, ...selected };
+    }
     this.state.lastLoginAt = new Date().toISOString();
     this.save();
   }
 
   status() {
-    const loggedIn = this.hasUpstreamCredentials();
+    const activeStation = this.normalizeStationId(this.state.activeStation);
+    const loggedIn = this.hasUpstreamCredentials(activeStation);
+    let lastAiEntryOrigin = null;
+    try { lastAiEntryOrigin = this.lastAiEntryUrl ? new URL(this.lastAiEntryUrl).origin : null; } catch {}
+    const stations = Object.fromEntries(['Sorux', 'OneOpenAI'].map((stationId) => {
+      const station = this.state.stations?.[stationId] || {};
+      return [stationId, {
+        loggedIn: this.hasUpstreamCredentials(stationId),
+        cookieCount: Number(station.cookieCount || 0),
+        capturedAt: station.capturedAt || null,
+        tokenExpired: this.upstreamTokenExpired(stationId),
+        loginInProgress: Boolean(this.loginContext && this.loginStationId === stationId),
+      }];
+    }));
     return {
       loggedIn,
       needsLogin: !loggedIn,
+      activeStation,
+      stations,
       apiKeyConfigured: Boolean(this.state.apiKeyHash),
       loginInProgress: Boolean(this.loginContext),
       lastLoginAt: this.state.lastLoginAt || null,
-      tokenExpired: this.upstreamTokenExpired(),
+      tokenExpired: this.upstreamTokenExpired(activeStation),
       loginError: this.loginError,
       captureAttempts: this.captureAttempts,
       lastCapturePath: this.lastCapturePath,
       recentTraffic: (this.loginTraffic || []).slice(-40),
       loginProtocol: this.loginProtocol,
       lastAiEntryAction: this.lastAiEntryAction,
-      lastAiEntryUrl: this.lastAiEntryUrl,
+      lastAiEntryUrl: lastAiEntryOrigin,
     };
   }
 
@@ -303,8 +393,11 @@ export class CredentialManager {
     if (this.loginTraffic.length > 40) this.loginTraffic.splice(0, this.loginTraffic.length - 40);
   }
 
-  async startLogin() {
-    if (this.loginContext) return { started: true, alreadyRunning: true };
+  async startLogin(options = {}) {
+    if (this.loginContext) return { started: true, alreadyRunning: true, stationId: this.loginStationId };
+    const stationId = this.normalizeStationId(options.stationId ?? this.state.activeStation);
+    this.loginStationId = stationId;
+    this.loadIntoConfig(stationId);
     this.loginError = null;
     this.captureAttempts = 0;
     this.lastCapturePath = null;
@@ -312,7 +405,8 @@ export class CredentialManager {
     this.loginProtocol = null;
     const executablePath = this.cfg.auth?.browserPath || findBrowser();
     if (!executablePath) throw new Error('未找到 Chrome/Edge。请设置 CHATTOAPI_BROWSER_PATH 或 auth.browserPath');
-    fs.mkdirSync(this.profileDir, { recursive: true });
+    const profileDir = stationId === 'OneOpenAI' ? `${this.profileDir}-OneOpenAI` : this.profileDir;
+    fs.mkdirSync(profileDir, { recursive: true });
     const configuredLoginUrl = this.cfg.auth?.loginUrl || this.cfg.upstream.baseUrl;
     const targetPaths = this.cfg.auth?.capturePaths?.length
       ? this.cfg.auth.capturePaths
@@ -327,7 +421,7 @@ export class CredentialManager {
     const browserArgs = Array.isArray(this.cfg.auth?.browserArgs)
       ? this.cfg.auth.browserArgs
       : ['--disable-quic', '--disable-http2'];
-    const context = await chromium.launchPersistentContext(this.profileDir, {
+    const context = await chromium.launchPersistentContext(profileDir, {
       headless: this.cfg.auth?.headless === true,
       executablePath,
       args: browserArgs,
@@ -351,6 +445,7 @@ export class CredentialManager {
       this.loginCredentialTimer = null;
       await context.close().catch(() => {});
       this.loginContext = null;
+      this.loginStationId = null;
     };
     context.on('close', () => {
       if (captureCompleted) return;
@@ -359,6 +454,7 @@ export class CredentialManager {
       this.loginTimer = null;
       this.loginCredentialTimer = null;
       this.loginContext = null;
+      this.loginStationId = null;
     });
     const capturePageStorage = async (page) => {
       try {
@@ -378,7 +474,7 @@ export class CredentialManager {
         if (!cookie) return;
         this.captureAttempts += 1;
         this.lastCapturePath = pageUrl.pathname || '/';
-        this.captureHeaders({ authorization: `Bearer ${token}`, cookie });
+        this.captureHeaders({ authorization: `Bearer ${token}`, cookie }, { stationId: this.loginStationId });
         this.loginError = null;
       } catch {
         // 忽略页面状态读取失败，保持登录窗口打开。
@@ -416,7 +512,7 @@ export class CredentialManager {
         }
         if (!pathMatch && !authenticatedSameOrigin) return;
         if (!headers.authorization || !headers.cookie) return;
-        this.captureHeaders(headers);
+        this.captureHeaders(headers, { stationId: this.loginStationId });
         this.loginError = null;
         // 普通初始化请求（例如 /user_granular_consent）只能证明凭据存在，
         // 不能结束捕获窗口；等待最终对话响应以保留真实协议摘要。
@@ -458,8 +554,8 @@ export class CredentialManager {
       this.closeLogin().catch(() => {});
     }, Number(this.cfg.auth?.loginTimeoutMs || 600000));
     const page = context.pages()[0] || await context.newPage();
-    if (this.hasUpstreamCredentials()) {
-      const stored = this.cfg.upstream.credential;
+    if (this.hasUpstreamCredentials(stationId)) {
+      const stored = this.state.stations?.[stationId]?.credential || {};
       const storedCookies = cookieHeaderToPlaywrightCookies(stored.cookie, upstreamOrigin);
       if (storedCookies.length) await context.addCookies(storedCookies).catch(() => {});
       if (stored.bearerToken && typeof page.addInitScript === 'function') {
@@ -533,7 +629,7 @@ export class CredentialManager {
     capturePageStorage(page).catch(() => {});
     const navigationTimeoutMs = Math.max(30_000, Number(this.cfg.auth?.loginNavigationTimeoutMs || 60_000));
     // 已有有效加密凭据时先复用 Profile 会话，避免每次协议捕获都要求重新输入动态码。
-    const initialUrl = this.hasUpstreamCredentials()
+    const initialUrl = this.hasUpstreamCredentials(stationId)
       ? new URL('/Web/List.html', upstreamOrigin).toString()
       : loginUrl;
     page.goto(initialUrl, { waitUntil: 'commit', timeout: navigationTimeoutMs }).catch((error) => {
@@ -541,13 +637,13 @@ export class CredentialManager {
       this.loginError = `无法打开登录页面: ${error.message}`;
       // 保留浏览器上下文，允许用户手动刷新或继续完成登录。
     });
-    return { started: true, url: loginUrl, instruction: '请在打开的浏览器中登录；登录成功后会自动打开配置的 AI 入口并捕获认证请求。' };
+    return { started: true, stationId, url: loginUrl, instruction: '请在打开的浏览器中登录；登录成功后会自动打开配置的 AI 入口并捕获认证请求。' };
   }
 
   async openConfiguredAiEntry(page) {
     if (this.cfg.auth?.autoOpenAiEntry === false || typeof page?.evaluate !== 'function') return false;
     const allowedCars = new Set(['Sorux', 'FakeOAI', 'XYChatGPT', 'OneOpenAI', 'Gemini', 'Grok']);
-    const configuredCar = String(this.cfg.upstream?.car || 'Sorux');
+    const configuredCar = String(this.loginStationId || this.state.activeStation || this.cfg.upstream?.car || 'Sorux');
     const car = allowedCars.has(configuredCar) ? configuredCar : 'Sorux';
     const actions = [`AutoVIP${car}`, `AutoFree${car}`, `Jump${car}`];
     const candidates = await page.evaluate((targetActions) => targetActions.map((targetAction) => ({
@@ -591,10 +687,16 @@ export class CredentialManager {
     return clicked;
   }
 
-  async submitDynamicCode(code) {
+  async submitDynamicCode(code, { stationId = this.loginStationId || this.state?.activeStation } = {}) {
+    const targetStationId = this.normalizeStationId(stationId);
     const value = String(code || '').trim();
     if (!value) throw new Error('动态码不能为空');
     if (!this.loginContext) throw new Error('登录浏览器未启动，请先调用 /auth/login');
+    if (this.loginStationId && this.loginStationId !== targetStationId) {
+      const error = new Error(`当前登录窗口属于 ${this.loginStationId} 站点，请先关闭后重新打开 ${targetStationId} 登录`);
+      error.status = 400;
+      throw error;
+    }
     const upstreamOrigin = new URL(this.cfg.upstream.baseUrl).origin;
     const upstreamHost = new URL(upstreamOrigin).host;
     const page = this.loginContext.pages().find((candidate) => {
@@ -692,7 +794,7 @@ export class CredentialManager {
           const cookies = await this.loginContext.cookies(endpoint.toString());
           const cookie = cookies.map(({ name, value: cookieValue }) => `${name}=${cookieValue}`).join('; ');
           if (cookie) {
-            this.captureHeaders({ authorization: `Bearer ${responseToken}`, cookie });
+            this.captureHeaders({ authorization: `Bearer ${responseToken}`, cookie }, { stationId: targetStationId });
             await this.closeLogin();
             return { ok: true, message: '登录成功，凭据已加密保存' };
           }
@@ -705,12 +807,12 @@ export class CredentialManager {
       await this.openConfiguredAiEntry(page);
       const captureWaitMs = Math.max(15000, Math.min(60000, Number(this.cfg.auth?.captureWaitMs || 30000)));
       const captureDeadline = Date.now() + captureWaitMs;
-      while (Date.now() < captureDeadline && !this.hasUpstreamCredentials()) {
+      while (Date.now() < captureDeadline && !this.hasUpstreamCredentials(targetStationId)) {
         await new Promise((resolve) => setTimeout(resolve, 250));
       }
       return {
         ok: true,
-        message: this.hasUpstreamCredentials() ? '登录成功，凭据已加密保存' : '登录成功，正在捕获凭据',
+        message: this.hasUpstreamCredentials(targetStationId) ? '登录成功，凭据已加密保存' : '登录成功，正在捕获凭据',
       };
     }
     return { ok: false, message: result.msg || `登录失败（HTTP ${result.httpStatus}）` };
@@ -721,8 +823,9 @@ export class CredentialManager {
     this.loginTimer = null;
     if (this.loginCredentialTimer) clearInterval(this.loginCredentialTimer);
     this.loginCredentialTimer = null;
-    if (!this.loginContext) return;
-    await this.loginContext.close().catch(() => {});
+    const context = this.loginContext;
+    if (context) await context.close().catch(() => {});
     this.loginContext = null;
+    this.loginStationId = null;
   }
 }
